@@ -1,0 +1,98 @@
+{
+  "name": "sanity-plugin-link-checker",
+  "version": "1.0.0",
+  "description": "Scans a Sanity dataset for dangling document references and dead external links, with a Studio tool to review and jump to the offending documents.",
+  "keywords": [
+    "sanity",
+    "sanity-plugin"
+  ],
+  "license": "MIT",
+  "author": "Kodamera",
+  "contributors": [
+    "Henrik Larsson"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kodamera/sanity-plugin-link-checker.git"
+  },
+  "homepage": "https://github.com/kodamera/sanity-plugin-link-checker#readme",
+  "bugs": {
+    "url": "https://github.com/kodamera/sanity-plugin-link-checker/issues"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./core": {
+      "source": "./src/core.ts",
+      "default": "./dist/core.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.js"
+      },
+      "./core": {
+        "default": "./dist/core.js"
+      },
+      "./package.json": "./package.json"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "sanity-plugin-link-checker": "./dist/bin/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "browserslist": "extends @sanity/browserslist-config",
+  "scripts": {
+    "build": "plugin-kit verify-package --silent && pkg-utils build --strict --check --clean && npm run build:cli",
+    "build:cli": "node scripts/build-cli.mjs",
+    "format": "prettier --write --cache --ignore-unknown .",
+    "link-watch": "plugin-kit link-watch",
+    "lint": "eslint .",
+    "prepublishOnly": "npm run build",
+    "watch": "pkg-utils watch --strict"
+  },
+  "dependencies": {
+    "@sanity/client": "^7.23.0",
+    "@sanity/id-utils": "^1.0.0",
+    "@sanity/ui": "^3.3.5"
+  },
+  "devDependencies": {
+    "@sanity/browserslist-config": "^1.0.5",
+    "@sanity/pkg-utils": "^10.9.1",
+    "@sanity/plugin-kit": "^6.0.4",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@typescript-eslint/eslint-plugin": "^8.63.0",
+    "@typescript-eslint/parser": "^8.63.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-config-sanity": "^7.1.4",
+    "eslint-plugin-prettier": "^5.5.6",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.4",
+    "prettier-plugin-packagejson": "^3.0.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "sanity": "^6.4.0",
+    "styled-components": "^6.4.3",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19",
+    "sanity": "^5 || ^6.0.0-0"
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  }
+}
