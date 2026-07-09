@@ -360,117 +360,129 @@ export function ResultRow({
   )
 
   return (
+    // Bleed pattern (same as Studio pane items): the hover background extends 8px past the
+    // content on both sides (negative margin + matching inner padding), while the divider
+    // sits on the innermost element so it stays exactly content-width. Content alignment
+    // with the rest of the page is unchanged.
     <Box
       className="lc-row"
-      paddingY={0}
       style={{
-        borderBottom: showDivider ? '1px solid var(--card-border-color)' : undefined,
+        margin: '0 -8px',
+        padding: '0 8px',
+        borderRadius: 3,
         ...leavingStyle(leaving),
       }}
     >
-      <Flex align="center" gap={3} style={{position: 'relative', cursor: 'pointer'}}>
-        {/* Full-row overlay anchor: the whole row is a link to the document. Sits at
+      <Box
+        paddingY={3}
+        style={{
+          borderBottom: showDivider ? '1px solid var(--card-border-color)' : undefined,
+        }}
+      >
+        <Flex align="center" gap={3} style={{position: 'relative', cursor: 'pointer'}}>
+          {/* Full-row overlay anchor: the whole row is a link to the document. Sits at
             z-index 1; the trailing controls group at z-index 2 stays hoverable/clickable
             above it (badges and dots included - their tooltips need real hover). */}
-        <a
-          aria-label={`${finding.fromType} (${finding.fromId})`}
-          href={editHref(finding, focusOnOpen)}
-          onClick={handleLinkClick}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 1,
-          }}
-        />
-        <Stack gap={2} flex={1} style={{minWidth: 0, opacity: acknowledged ? 0.5 : 1}}>
-          {schemaType && (previewDocument || previewLoading) ? (
-            <Box title={hoverTitle} className="lc-row-preview" style={{minWidth: 0}}>
-              <SanityDefaultPreview
-                icon={schemaType.icon}
-                imageUrl={previewValue?.imageUrl}
-                isPlaceholder={preview.isLoading || (previewLoading && !previewDocument)}
-                media={previewValue?.media}
-                title={previewValue?.title ?? `${finding.fromType} (${finding.fromId})`}
-                subtitle={<span style={clampStyleUrl}>{findingSubtitle}</span>}
-                error={preview.error}
-                layout="default"
-                withBorder={false}
-                withRadius={false}
-                withShadow={false}
-              />
-            </Box>
-          ) : (
-            <>
-              <Text size={1} weight="medium">
-                <span style={clampStyle}>{`${finding.fromType} (${finding.fromId})`}</span>
-              </Text>
-              <Box title={hoverTitle} style={{minWidth: 0}}>
-                <Text size={1} muted>
-                  <span style={clampStyleUrl}>{findingSubtitle}</span>
-                </Text>
+          <a
+            aria-label={`${finding.fromType} (${finding.fromId})`}
+            href={editHref(finding, focusOnOpen)}
+            onClick={handleLinkClick}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 1,
+            }}
+          />
+          <Stack gap={2} flex={1} style={{minWidth: 0, opacity: acknowledged ? 0.5 : 1}}>
+            {schemaType && (previewDocument || previewLoading) ? (
+              <Box title={hoverTitle} className="lc-row-preview" style={{minWidth: 0}}>
+                <SanityDefaultPreview
+                  icon={schemaType.icon}
+                  imageUrl={previewValue?.imageUrl}
+                  isPlaceholder={preview.isLoading || (previewLoading && !previewDocument)}
+                  media={previewValue?.media}
+                  title={previewValue?.title ?? `${finding.fromType} (${finding.fromId})`}
+                  subtitle={<span style={clampStyleUrl}>{findingSubtitle}</span>}
+                  error={preview.error}
+                  layout="default"
+                  withBorder={false}
+                  withRadius={false}
+                  withShadow={false}
+                />
               </Box>
-            </>
-          )}
-        </Stack>
-        {/* One flex group, one gap value, for all trailing elements - badge, actions, and
+            ) : (
+              <>
+                <Text size={1} weight="medium">
+                  <span style={clampStyle}>{`${finding.fromType} (${finding.fromId})`}</span>
+                </Text>
+                <Box title={hoverTitle} style={{minWidth: 0}}>
+                  <Text size={1} muted>
+                    <span style={clampStyleUrl}>{findingSubtitle}</span>
+                  </Text>
+                </Box>
+              </>
+            )}
+          </Stack>
+          {/* One flex group, one gap value, for all trailing elements - badge, actions, and
             dot (anchored last: badge width varies row to row, so the far right edge is the
             only position the dot doesn't drift depending on what the badge says). Tighter
             on mobile, where every pixel back to the title/subtitle column matters more.
             z-index 2 lifts the whole group above the row's overlay anchor - hover must
             reach the badges for their explanatory tooltips to show. */}
-        <Flex
-          align="center"
-          gap={[2, 2, 3]}
-          style={{flexShrink: 0, position: 'relative', zIndex: 2}}
-        >
-          <AggregateStatusBadge groups={groups} />
-          {/* Two text buttons eat half a phone screen and truncate every title - below
+          <Flex
+            align="center"
+            gap={[2, 2, 3]}
+            style={{flexShrink: 0, position: 'relative', zIndex: 2}}
+          >
+            <AggregateStatusBadge groups={groups} />
+            {/* Two text buttons eat half a phone screen and truncate every title - below
               the 600px breakpoint they collapse into one overflow menu. The badge and
               doc-state dot stay: they're the signal an editor scans the list by. */}
-          <Box display={['none', 'none', 'block']}>
-            <Flex align="center" gap={[2, 2, 3]}>
-              <Button
-                text={t('result.details')}
-                mode="ghost"
-                fontSize={1}
-                padding={2}
-                onClick={handleDetails}
-              />
-              {anyActionable && (
-                <ResolveButton acknowledged={acknowledged} disabled={leaving} onClick={trigger} />
-              )}
-            </Flex>
-          </Box>
-          <Box display={['block', 'block', 'none']}>
-            <MenuButton
-              button={
+            <Box display={['none', 'none', 'block']}>
+              <Flex align="center" gap={[2, 2, 3]}>
                 <Button
-                  aria-label={t('result.more-actions')}
-                  icon={EllipsisIcon}
-                  mode="bleed"
+                  text={t('result.details')}
+                  mode="ghost"
                   fontSize={1}
                   padding={2}
+                  onClick={handleDetails}
                 />
-              }
-              id={`lc-row-menu-${finding.fromId}`}
-              menu={
-                <Menu>
-                  <MenuItem text={t('result.details')} onClick={handleDetails} />
-                  {anyActionable && (
-                    <MenuItem
-                      text={acknowledged ? t('result.unresolve') : t('result.resolve')}
-                      disabled={leaving}
-                      onClick={trigger}
-                    />
-                  )}
-                </Menu>
-              }
-              popover={{portal: true, placement: 'bottom-end'}}
-            />
-          </Box>
-          <DocStateDot state={finding.docState} updatedAt={finding.docStateUpdatedAt} />
+                {anyActionable && (
+                  <ResolveButton acknowledged={acknowledged} disabled={leaving} onClick={trigger} />
+                )}
+              </Flex>
+            </Box>
+            <Box display={['block', 'block', 'none']}>
+              <MenuButton
+                button={
+                  <Button
+                    aria-label={t('result.more-actions')}
+                    icon={EllipsisIcon}
+                    mode="bleed"
+                    fontSize={1}
+                    padding={2}
+                  />
+                }
+                id={`lc-row-menu-${finding.fromId}`}
+                menu={
+                  <Menu>
+                    <MenuItem text={t('result.details')} onClick={handleDetails} />
+                    {anyActionable && (
+                      <MenuItem
+                        text={acknowledged ? t('result.unresolve') : t('result.resolve')}
+                        disabled={leaving}
+                        onClick={trigger}
+                      />
+                    )}
+                  </Menu>
+                }
+                popover={{portal: true, placement: 'bottom-end'}}
+              />
+            </Box>
+            <DocStateDot state={finding.docState} updatedAt={finding.docStateUpdatedAt} />
+          </Flex>
         </Flex>
-      </Flex>
+      </Box>
     </Box>
   )
 }
