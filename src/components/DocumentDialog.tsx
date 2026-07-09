@@ -26,12 +26,17 @@ function DialogRow({
   onToggleAcknowledged,
   editHref,
   showDivider,
+  showMeta,
 }: {
   group: FindingGroup
   acknowledgedKeys: Set<string>
   onToggleAcknowledged: (key: string) => void
   editHref: (f: ScanFinding, focus?: boolean) => string
   showDivider: boolean
+  /** The field-path line earns its ink when it disambiguates between several rows or
+   * several occurrences - for a document's single, single-occurrence problem it just
+   * echoes a field name ("Url") under the URL itself. */
+  showMeta: boolean
 }): JSX.Element {
   const {t} = useTranslation(linkCheckerLocaleNamespace)
   const {finding, keys} = group
@@ -63,10 +68,12 @@ function DialogRow({
             <span style={{wordBreak: 'break-all'}}>{value}</span>
           </a>
         </Text>
-        <Text size={1} muted>
-          {describeFieldPath(finding.fieldPath)}
-          {placesSuffix}
-        </Text>
+        {(showMeta || keys.length > 1) && (
+          <Text size={1} muted>
+            {describeFieldPath(finding.fieldPath)}
+            {placesSuffix}
+          </Text>
+        )}
       </Stack>
       <Flex align="center" gap={2} style={{flexShrink: 0}}>
         <StatusBadgeFor finding={finding} />
@@ -117,16 +124,18 @@ export function DocumentDialog({
   return (
     <Dialog
       id="link-checker-document-dialog"
-      header={title}
+      header={
+        <span>
+          {title}{' '}
+          <span style={{color: 'var(--card-muted-fg-color)', fontWeight: 400}}>· {typeLabel}</span>
+        </span>
+      }
       onClose={onClose}
       onClickOutside={onClose}
       width={1}
     >
       <Box padding={4}>
         <Stack gap={3}>
-          <Text size={1} muted>
-            {typeLabel}
-          </Text>
           <Stack gap={0}>
             {groups.map((group, index) => (
               <DialogRow
@@ -136,6 +145,7 @@ export function DocumentDialog({
                 onToggleAcknowledged={onToggleAcknowledged}
                 editHref={editHref}
                 showDivider={index < groups.length - 1}
+                showMeta={groups.length > 1}
               />
             ))}
           </Stack>

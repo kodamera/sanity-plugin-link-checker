@@ -15,11 +15,6 @@ const resources = {
   'banner.verifying-links':
     'Verifierar externa länkar på serversidan... resultaten visas här när kontrollen är klar (upp till ~90 sekunder).',
   'dialog.open-document': 'Öppna dokumentet i en ny flik',
-  'doc-state.draft': 'Endast utkast',
-  'doc-state.draft-with-date': 'Utkast - redigerat {{date}}',
-  'doc-state.edited': 'Publicerad, redigerad',
-  'doc-state.published': 'Publicerad',
-  'doc-state.published-with-date': 'Publicerad - redigerad {{date}}',
   'empty.active-broken-references': 'Inga aktiva brutna referenser.',
   'empty.broken-links': 'Inga brutna länkar.',
   'empty.no-scan': 'Ingen skanning har körts än.',

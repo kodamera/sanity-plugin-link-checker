@@ -328,7 +328,7 @@ export function ResultRow({
 
   return (
     <Box
-      paddingY={3}
+      paddingY={0}
       style={{
         borderBottom: showDivider ? '1px solid var(--card-border-color)' : undefined,
         ...leavingStyle(leaving),
@@ -350,7 +350,7 @@ export function ResultRow({
         />
         <Stack gap={2} flex={1} style={{minWidth: 0, opacity: acknowledged ? 0.5 : 1}}>
           {schemaType && previewDocument ? (
-            <Box title={hoverTitle} style={{minWidth: 0}}>
+            <Box title={hoverTitle} className="lc-row-preview" style={{minWidth: 0}}>
               <SanityDefaultPreview
                 icon={schemaType.icon}
                 imageUrl={previewValue?.imageUrl}

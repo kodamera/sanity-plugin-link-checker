@@ -1,6 +1,6 @@
 import {Badge, Text, Tooltip} from '@sanity/ui'
-import type {JSX} from 'react'
-import {useCurrentLocale, useTranslation} from 'sanity'
+import type {ComponentProps, JSX} from 'react'
+import {DocumentStatus, DocumentStatusIndicator, useTranslation} from 'sanity'
 
 import {linkCheckerLocaleNamespace} from '../i18n'
 import type {DocumentState, DocumentStateUpdatedAt, UrlCheckResult} from '../lib/types'
@@ -33,62 +33,21 @@ export function ReferenceStatusBadge(): JSX.Element {
   )
 }
 
-// Fixed semantic colors (not theme tone tokens) - a status dot reads the same saturated hue
-// on light or dark, same as Sanity's own draft/publish indicators.
-const DOC_STATE_DOT_COLOR = {
-  draft: '#F7B500',
-  published: '#43D675',
+// The indicator only checks presence of draft/published to decide which dots to draw, and
+// the tooltip content reads `_updatedAt` - a minimal stub carries everything both need.
+// (The indicator's prop type wants a full document stub, hence the cast.)
+type IndicatorStub = NonNullable<ComponentProps<typeof DocumentStatusIndicator>['draft']>
+
+function stubOf(updatedAt: string | undefined): IndicatorStub {
+  return {_updatedAt: updatedAt ?? ''} as unknown as IndicatorStub
 }
 
-type DocStateVariant = keyof typeof DOC_STATE_DOT_COLOR
-
-// Matches Sanity's own "dot" icon exactly (same viewBox, same <circle> r/cx/cy/stroke-width -
-// inspected from Sanity's own release-status dot: `data-sanity-icon="dot"`, a 25x25 viewBox
-// with a `<circle cx="12.5" cy="12.5" r="2.5" fill="currentColor" stroke="currentColor"
-// stroke-width="1.2">`), rather than a plain CSS border-radius div, so it reads as the same
-// visual language as status dots elsewhere in the Studio. Color is set via `color` (not fill
-// directly) so `currentColor` picks it up, matching how Sanity's own icon is colored via a
-// CSS custom property.
-function formatUpdatedAt(value: string | undefined, locale: string): string | undefined {
-  if (!value) return undefined
-  return new Intl.DateTimeFormat(locale, {dateStyle: 'medium', timeStyle: 'short'}).format(
-    new Date(value),
-  )
-}
-
-function DotIcon({label, variant}: {label: string; variant: DocStateVariant}): JSX.Element {
-  return (
-    <Tooltip content={<Text size={1}>{label}</Text>} placement="top" portal>
-      {/* The wrapper is the actual hover/focus target (16px) - larger than the icon itself,
-          so hitting "near" the dot still triggers the tooltip instead of requiring pixel
-          precision. */}
-      <span
-        aria-label={label}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          width: 16,
-          height: 16,
-          color: DOC_STATE_DOT_COLOR[variant],
-        }}
-      >
-        <svg viewBox="0 0 25 25" width={16} height={16} fill="none">
-          <circle
-            cx="12.5"
-            cy="12.5"
-            r="2.5"
-            fill="currentColor"
-            stroke="currentColor"
-            strokeWidth="1.2"
-          />
-        </svg>
-      </span>
-    </Tooltip>
-  )
-}
-
+/**
+ * Sanity's own document-status lockup: the overlapping green/amber dots from the Studio's
+ * document lists (`DocumentStatusIndicator`) with the native "Published - Edited Dec 6 /
+ * Draft - Edited 3 hr. ago" tooltip (`DocumentStatus`, relative times and Studio i18n
+ * included) - rather than hand-drawn dots that only imitate them.
+ */
 export function DocStateDot({
   state,
   updatedAt,
@@ -96,31 +55,32 @@ export function DocStateDot({
   state?: DocumentState
   updatedAt?: DocumentStateUpdatedAt
 }): JSX.Element | null {
-  const {t} = useTranslation(linkCheckerLocaleNamespace)
-  const currentLocale = useCurrentLocale()
   if (!state) return null
-  const draftDate = formatUpdatedAt(updatedAt?.draft, currentLocale.id)
-  const publishedDate = formatUpdatedAt(updatedAt?.published, currentLocale.id)
-  const draftLabel = draftDate
-    ? t('doc-state.draft-with-date', {date: draftDate})
-    : t('doc-state.draft')
-  const publishedLabel = publishedDate
-    ? t('doc-state.published-with-date', {date: publishedDate})
-    : t('doc-state.published')
+  const draft = state === 'published' ? undefined : stubOf(updatedAt?.draft)
+  const published = state === 'draft' ? undefined : stubOf(updatedAt?.published)
 
-  if (state === 'edited') {
-    return (
-      <span style={{display: 'inline-flex', gap: 2}}>
-        <DotIcon label={publishedLabel} variant="published" />
-        <DotIcon label={draftLabel} variant="draft" />
+  return (
+    <Tooltip
+      content={<DocumentStatus draft={draft ?? null} published={published ?? null} />}
+      placement="top"
+      portal
+    >
+      {/* The wrapper is the actual hover/focus target - larger than the dots themselves,
+          so hitting "near" them still triggers the tooltip instead of requiring pixel
+          precision. */}
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          minWidth: 16,
+          height: 16,
+        }}
+      >
+        <DocumentStatusIndicator draft={draft} published={published} />
       </span>
-    )
-  }
-
-  return state === 'published' ? (
-    <DotIcon label={publishedLabel} variant="published" />
-  ) : (
-    <DotIcon label={draftLabel} variant="draft" />
+    </Tooltip>
   )
 }
 
