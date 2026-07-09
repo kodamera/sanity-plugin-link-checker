@@ -1,4 +1,4 @@
-import {Badge, Box, Button, Card, Container, Flex, Heading, Spinner, Stack, Text} from '@sanity/ui'
+import {Box, Button, Card, Container, Flex, Heading, Stack, Text} from '@sanity/ui'
 import {type JSX, useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {useClient, useWorkspace} from 'sanity'
 import {useRouter} from 'sanity/router'
@@ -16,16 +16,12 @@ import {
   type ScanResult,
 } from '../lib/types'
 import {LinkResultsTabs} from './LinkResultsTabs'
-import {ResultRow} from './ResultRow'
+import {AwaitingFunctionBanner, CorsBanner, ScanProgressBanner} from './ScanStatusBanners'
+import {ScanSummaryCard} from './ScanSummaryCard'
+import {TabbedFindings} from './TabbedFindings'
 
 const API_VERSION = '2024-01-01'
 const AWAIT_FUNCTION_TIMEOUT_MS = 90_000
-
-const SOURCE_LABEL: Record<ScanResult['source'], string> = {
-  browser: 'browser scan',
-  cli: 'CLI',
-  function: 'Function',
-}
 
 export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.Element {
   const config = useMemo(() => props.config ?? {}, [props.config])
@@ -65,7 +61,6 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
     null,
   )
   const [bannerDismissed, setBannerDismissed] = useState(false)
-  const [showReviewedRefs, setShowReviewedRefs] = useState(false)
   // Distinct from `scanning` (which only covers the quick browser-side pass): true from the
   // moment the trigger doc is written until either a fresher report arrives or the timeout
   // fires. We can't observe a Function actually running, only that its result never showed up.
@@ -78,6 +73,8 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
       awaitTimeoutRef.current = null
     }
   }, [])
+
+  const handleDismissBanner = useCallback(() => setBannerDismissed(true), [])
 
   const persistResult = useCallback(
     (scanResult: ScanResult) => {
@@ -180,7 +177,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
     () => brokenRefs.filter((f) => !acknowledgedKeys.has(getFindingKey(f))),
     [brokenRefs, acknowledgedKeys],
   )
-  const reviewedBrokenRefs = useMemo(
+  const resolvedBrokenRefs = useMemo(
     () => brokenRefs.filter((f) => acknowledgedKeys.has(getFindingKey(f))),
     [brokenRefs, acknowledgedKeys],
   )
@@ -202,45 +199,50 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   )
 
   const issueCount = activeBrokenRefs.length + activeBrokenLinks.length
-  const issueBreakdown = [
-    activeBrokenRefs.length > 0 &&
-      `${activeBrokenRefs.length} broken reference${activeBrokenRefs.length === 1 ? '' : 's'}`,
-    activeBrokenLinks.length > 0 &&
-      `${activeBrokenLinks.length} broken link${activeBrokenLinks.length === 1 ? '' : 's'}`,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  // Only spell out the split when there's an actual mix to disambiguate - with a single
+  // category active it would just repeat the heading's count in different words.
+  const issueBreakdown =
+    activeBrokenRefs.length > 0 && activeBrokenLinks.length > 0
+      ? `${activeBrokenRefs.length} broken reference${activeBrokenRefs.length === 1 ? '' : 's'} · ${activeBrokenLinks.length} broken link${activeBrokenLinks.length === 1 ? '' : 's'}`
+      : null
   const showCorsBanner =
     !bannerDismissed && result?.source === 'browser' && !config.checkUrl && unverifiableCount > 0
 
   return (
-    <Container width={2} padding={4}>
-      <Stack space={4}>
-        <Flex align="center" justify="space-between">
-          <Stack space={3}>
-            <Flex align="center" gap={2}>
-              <Heading size={2}>Link Checker</Heading>
-              {dataset && <Badge tone="default">{dataset}</Badge>}
-            </Flex>
-            {result && (
-              <Stack space={2}>
-                <Heading size={1}>
-                  {issueCount === 0
-                    ? 'No issues found'
-                    : `${issueCount} issue${issueCount === 1 ? '' : 's'} found`}
-                </Heading>
-                {issueBreakdown && (
-                  <Text size={1} muted>
-                    {issueBreakdown}
-                  </Text>
-                )}
-              </Stack>
+    <Container
+      width="auto"
+      paddingX={[3, 3, 5]}
+      paddingTop={[4, 4, 6]}
+      paddingBottom={[3, 3, 5]}
+      style={{overflowX: 'hidden', maxWidth: '100vw', boxSizing: 'border-box'}}
+    >
+      {/* display:flex sizes to fit-content by default, not its parent's width - without an
+          explicit width here every row below thinks it has unlimited room and never wraps,
+          even though the Container itself is correctly capped. This is what actually makes
+          the cap apply to the content instead of just clipping it. */}
+      <Stack gap={[4, 4, 5]} style={{width: '100%', minWidth: 0}}>
+        {/* Column on narrow screens, not a row that hopes flex-wrap kicks in at the right
+            threshold - the button unconditionally sits below the title instead of risking
+            getting clipped by a wrap that doesn't trigger. */}
+        <Flex direction={['column', 'column', 'row']} justify="space-between" gap={4}>
+          <Stack gap={4} style={{minWidth: 0}}>
+            <Stack gap={3}>
+              <Heading size={[2, 2, 3]}>Link Checker</Heading>
+              {dataset && (
+                <Text size={1} muted>
+                  Checks against{' '}
+                  <strong>
+                    <i>{dataset}</i>
+                  </strong>{' '}
+                  dataset
+                </Text>
+              )}
+            </Stack>
+            {!result && (
+              <Text size={1} muted>
+                No scan has been run yet.
+              </Text>
             )}
-            <Text size={1} muted>
-              {result
-                ? `Scanned ${result.documentsScanned} documents · ${result.urlsChecked} unique external URLs across ${linkFindings.length} link instance${linkFindings.length === 1 ? '' : 's'} — ${new Date(result.ranAt).toLocaleString()} (${SOURCE_LABEL[result.source]})`
-                : 'No scan has been run yet.'}
-            </Text>
           </Stack>
           <Button
             text={scanning ? 'Scanning…' : 'Run scan'}
@@ -250,99 +252,77 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
           />
         </Flex>
 
+        {result && (
+          <ScanSummaryCard
+            issueCount={issueCount}
+            issueBreakdown={issueBreakdown}
+            ranAt={result.ranAt}
+            source={result.source}
+            documentsScanned={result.documentsScanned}
+            urlsChecked={result.urlsChecked}
+            linkInstanceCount={linkFindings.length}
+          />
+        )}
+
         {scanning && progress && (
-          <Card padding={3} radius={2} tone="primary">
-            <Flex align="center" gap={3}>
-              <Spinner muted />
-              <Text size={1}>
-                {progress.message}
-                {progress.total > 1 ? ` (${progress.done}/${progress.total})` : ''}
-              </Text>
-            </Flex>
-          </Card>
+          <ScanProgressBanner
+            message={progress.message}
+            done={progress.done}
+            total={progress.total}
+          />
         )}
 
-        {!scanning && awaitingFunction && (
-          <Card padding={3} radius={2} tone="primary">
-            <Flex align="center" gap={3}>
-              <Spinner muted />
-              <Text size={1}>
-                Results above are from the quick browser-side pass. If a Document Function is
-                deployed, it&apos;s rerunning the check server-side now (can take a couple of
-                minutes) and will replace these automatically when done.
-              </Text>
-            </Flex>
-          </Card>
-        )}
+        {!scanning && awaitingFunction && <AwaitingFunctionBanner />}
 
-        {showCorsBanner && (
-          <Card padding={3} radius={2} tone="caution">
-            <Flex align="flex-start" justify="space-between" gap={3}>
-              <Text size={1}>
-                Running without a custom <code>checkUrl</code>: most &ldquo;Unverifiable&rdquo;
-                results below are the browser blocking cross-origin status reads (CORS), not
-                necessarily dead links. For accurate results, deploy a Document Function (
-                <code>npx sanity-plugin-link-checker init-function</code>) so &ldquo;Run scan&rdquo;
-                triggers one automatically, or run <code>npx sanity-plugin-link-checker</code> by
-                hand — see the plugin README.
-              </Text>
-              <Button
-                text="Dismiss"
-                mode="bleed"
-                fontSize={1}
-                padding={2}
-                onClick={() => setBannerDismissed(true)}
-              />
-            </Flex>
-          </Card>
-        )}
+        {showCorsBanner && <CorsBanner onDismiss={handleDismissBanner} />}
 
         {result && issueCount === 0 && (
-          <Card padding={4} radius={2} tone="positive">
+          <Card padding={4} radius={2} shadow={0} tone="positive">
             <Text>No broken links or references found.</Text>
           </Card>
         )}
 
         {brokenRefs.length > 0 && (
-          <Stack space={3}>
-            <Heading size={1}>Broken references ({activeBrokenRefs.length})</Heading>
-            <Stack space={2}>
-              {(showReviewedRefs ? brokenRefs : activeBrokenRefs).map((finding) => {
-                const key = getFindingKey(finding)
-                return (
-                  <ResultRow
-                    key={key}
-                    finding={finding}
-                    title={titles.get(finding.fromId)}
-                    acknowledged={acknowledgedKeys.has(key)}
-                    onToggleAcknowledged={() => handleToggleAcknowledged(key)}
-                    editHref={editHref(finding)}
-                    onOpenEdit={() => handleOpenEdit(finding)}
-                  />
-                )
-              })}
-              {reviewedBrokenRefs.length > 0 && (
-                <Flex justify="flex-end">
-                  <Button
-                    text={
-                      showReviewedRefs
-                        ? 'Hide reviewed'
-                        : `Show ${reviewedBrokenRefs.length} reviewed`
-                    }
-                    mode="bleed"
-                    fontSize={1}
-                    padding={2}
-                    onClick={() => setShowReviewedRefs((v) => !v)}
-                  />
-                </Flex>
-              )}
+          <Stack gap={4}>
+            <Stack gap={2}>
+              <Heading size={1}>Broken references</Heading>
+              <Text size={1} muted>
+                Documents that reference another document that no longer exists.
+              </Text>
             </Stack>
+            <TabbedFindings
+              idPrefix="broken-refs"
+              tabs={[
+                {
+                  key: 'active',
+                  label: 'Active',
+                  emptyMessage: 'No active broken references.',
+                  items: activeBrokenRefs,
+                },
+                {
+                  key: 'resolved',
+                  label: 'Resolved',
+                  emptyMessage: 'Nothing resolved yet.',
+                  items: resolvedBrokenRefs,
+                },
+              ]}
+              titles={titles}
+              acknowledgedKeys={acknowledgedKeys}
+              onToggleAcknowledged={handleToggleAcknowledged}
+              onOpenEdit={handleOpenEdit}
+              editHref={editHref}
+            />
           </Stack>
         )}
 
         {linkFindings.length > 0 && (
-          <Stack space={3}>
-            <Heading size={1}>External links</Heading>
+          <Stack gap={4}>
+            <Stack gap={3}>
+              <Heading size={1}>External links</Heading>
+              <Text size={1} muted>
+                Links to other websites found in your content, checked to see if they still work.
+              </Text>
+            </Stack>
             <LinkResultsTabs
               findings={linkFindings}
               titles={titles}

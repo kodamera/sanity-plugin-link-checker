@@ -1,24 +1,7 @@
-import {Stack, Tab, TabList, TabPanel, Text} from '@sanity/ui'
-import {type JSX, useState} from 'react'
+import type {JSX} from 'react'
 
 import {type BrokenLink, getFindingKey, type ScanFinding} from '../lib/types'
-import {ResultRow} from './ResultRow'
-
-type LinkTab = 'broken' | 'unverifiable' | 'ok' | 'reviewed'
-
-const TAB_LABEL: Record<LinkTab, string> = {
-  broken: 'Broken',
-  unverifiable: 'Unverifiable',
-  ok: 'OK',
-  reviewed: 'Reviewed',
-}
-
-const TAB_EMPTY_MESSAGE: Record<LinkTab, string> = {
-  broken: 'No broken links.',
-  unverifiable: 'No unverifiable links.',
-  ok: 'No working links checked yet.',
-  reviewed: 'Nothing marked reviewed yet.',
-}
+import {TabbedFindings} from './TabbedFindings'
 
 export function LinkResultsTabs({
   findings,
@@ -35,60 +18,45 @@ export function LinkResultsTabs({
   editHref: (finding: ScanFinding) => string
   onOpenEdit: (finding: ScanFinding) => void
 }): JSX.Element {
-  const [tab, setTab] = useState<LinkTab>('broken')
-
-  const isReviewed = (f: BrokenLink) => acknowledgedKeys.has(getFindingKey(f))
-  const unreviewed = findings.filter((f) => !isReviewed(f))
-
-  // The status tabs (Broken/Unverifiable/OK) only show what still needs attention -
-  // reviewed findings move to their own tab regardless of status, as an audit trail.
-  const groups: Record<LinkTab, BrokenLink[]> = {
-    broken: unreviewed.filter((f) => f.result.status === 'broken'),
-    unverifiable: unreviewed.filter((f) => f.result.status === 'unverifiable'),
-    ok: unreviewed.filter((f) => f.result.status === 'ok'),
-    reviewed: findings.filter(isReviewed),
-  }
-
-  const visibleFindings = groups[tab]
+  const isResolved = (f: BrokenLink) => acknowledgedKeys.has(getFindingKey(f))
+  // The status tabs (Broken/Unverifiable/OK) only show what still needs attention - resolved
+  // findings move to their own tab regardless of status, as an audit trail.
+  const active = findings.filter((f) => !isResolved(f))
 
   return (
-    <Stack space={3}>
-      <TabList space={2}>
-        {(Object.keys(TAB_LABEL) as LinkTab[]).map((key) => (
-          <Tab
-            key={key}
-            aria-controls={`link-tabpanel-${key}`}
-            id={`link-tab-${key}`}
-            label={`${TAB_LABEL[key]} (${groups[key].length})`}
-            onClick={() => setTab(key)}
-            selected={tab === key}
-          />
-        ))}
-      </TabList>
-
-      <TabPanel aria-labelledby={`link-tab-${tab}`} id={`link-tabpanel-${tab}`}>
-        <Stack space={2}>
-          {visibleFindings.length === 0 && (
-            <Text size={1} muted>
-              {TAB_EMPTY_MESSAGE[tab]}
-            </Text>
-          )}
-          {visibleFindings.map((finding) => {
-            const key = getFindingKey(finding)
-            return (
-              <ResultRow
-                key={key}
-                finding={finding}
-                title={titles.get(finding.fromId)}
-                acknowledged={acknowledgedKeys.has(key)}
-                onToggleAcknowledged={() => onToggleAcknowledged(key)}
-                editHref={editHref(finding)}
-                onOpenEdit={() => onOpenEdit(finding)}
-              />
-            )
-          })}
-        </Stack>
-      </TabPanel>
-    </Stack>
+    <TabbedFindings
+      idPrefix="link"
+      tabs={[
+        {
+          key: 'broken',
+          label: 'Broken',
+          emptyMessage: 'No broken links.',
+          items: active.filter((f) => f.result.status === 'broken'),
+        },
+        {
+          key: 'unverifiable',
+          label: 'Unverifiable',
+          emptyMessage: 'No unverifiable links.',
+          items: active.filter((f) => f.result.status === 'unverifiable'),
+        },
+        {
+          key: 'ok',
+          label: 'OK',
+          emptyMessage: 'No working links checked yet.',
+          items: active.filter((f) => f.result.status === 'ok'),
+        },
+        {
+          key: 'resolved',
+          label: 'Resolved',
+          emptyMessage: 'Nothing resolved yet.',
+          items: findings.filter(isResolved),
+        },
+      ]}
+      titles={titles}
+      acknowledgedKeys={acknowledgedKeys}
+      onToggleAcknowledged={onToggleAcknowledged}
+      onOpenEdit={onOpenEdit}
+      editHref={editHref}
+    />
   )
 }
