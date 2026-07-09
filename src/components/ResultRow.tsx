@@ -1,4 +1,4 @@
-import {Box, Button, Flex, Stack, Text, Tooltip} from '@sanity/ui'
+import {Badge, Box, Button, Flex, Stack, Text, Tooltip} from '@sanity/ui'
 import {
   type CSSProperties,
   type JSX,
@@ -13,7 +13,7 @@ import {SanityDefaultPreview, useSchema, useTranslation, useValuePreview} from '
 import {linkCheckerLocaleNamespace} from '../i18n'
 import {describeFieldPath} from '../lib/humanizeFieldPath'
 import type {PreviewDocumentValue} from '../lib/resolvePreviewDocuments'
-import type {ScanFinding} from '../lib/types'
+import type {ScanFinding, UrlCheckResult} from '../lib/types'
 import {DocStateDot, LinkStatusBadge, ReferenceStatusBadge} from './StatusBadge'
 
 const EXIT_ANIMATION_MS = 180
@@ -209,6 +209,48 @@ function StatusBadgeFor({finding}: {finding: ScanFinding}): JSX.Element {
   )
 }
 
+const CATEGORY_BADGE: Record<
+  UrlCheckResult['status'],
+  {labelKey: string; tone: 'critical' | 'default' | 'positive'}
+> = {
+  broken: {labelKey: 'badge.broken', tone: 'critical'},
+  unverifiable: {labelKey: 'badge.unverifiable', tone: 'default'},
+  ok: {labelKey: 'badge.ok', tone: 'positive'},
+}
+
+/**
+ * The document row's badge. All of the document's findings showing the same result render
+ * that concrete badge (the 404 itself); different results collapse to a category label
+ * ("Broken") whose tooltip says to expand for the per-URL codes. A tab only ever mixes
+ * results within one status category, so the label is always truthful.
+ */
+function AggregateStatusBadge({groups}: {groups: FindingGroup[]}): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
+  const first = groups[0].finding
+  if (first.kind === 'reference') {
+    return <ReferenceStatusBadge />
+  }
+  const results = groups.map((g) => (g.finding.kind === 'link' ? g.finding.result : null))
+  const sameResult = results.every(
+    (r) =>
+      r &&
+      r.status === first.result.status &&
+      r.httpStatus === first.result.httpStatus &&
+      r.reason === first.result.reason,
+  )
+  if (sameResult) {
+    return <LinkStatusBadge result={first.result} />
+  }
+  const category = CATEGORY_BADGE[first.result.status]
+  return (
+    <Tooltip content={<Text size={1}>{t('status.mixed-statuses')}</Text>} placement="top" portal>
+      <Badge tone={category.tone} fontSize={1}>
+        {t(category.labelKey)}
+      </Badge>
+    </Tooltip>
+  )
+}
+
 function isActionable(finding: ScanFinding, acknowledged: boolean): boolean {
   // A working link has nothing to fix - only offer the action where there's an actual
   // problem (always true for a dangling reference), or to let someone revert a past mark.
@@ -327,6 +369,8 @@ export function ResultRow({
   const allKeys = useMemo(() => groups.flatMap((g) => g.keys), [groups])
   const {acknowledged, toggle} = useResolveToggle(allKeys, acknowledgedKeys, onToggleAcknowledged)
   const {leaving, trigger} = useLeaving(toggle)
+  // Row-level Resolve settles the whole document; offered when anything in it is actionable.
+  const anyActionable = acknowledged || groups.some((g) => isActionable(g.finding, false))
 
   const preview = useValuePreview({
     enabled: Boolean(schemaType && previewDocument),
@@ -343,11 +387,16 @@ export function ResultRow({
   })
   const placesSuffix =
     allKeys.length > 1 ? ` · ${t('result.occurrences', {count: allKeys.length})}` : ''
-  const findingSubtitle = multi
+  // Document type leads the subtitle - it's an urgency signal (a dead link on a legacy
+  // article and one on the flagship landing page are different emergencies). Schema title
+  // when defined (already human/locale-friendly), raw type name as fallback.
+  const typeLabel = schemaType?.title ?? finding.fromType
+  const findingDetail = multi
     ? `${t(finding.kind === 'reference' ? 'result.reference-count' : 'result.link-count', {
         count: groups.length,
       })}${placesSuffix}`
     : `${singleSubtitle}${placesSuffix}`
+  const findingSubtitle = `${typeLabel} · ${findingDetail}`
   const hoverTitle = multi
     ? groups
         .map((g) => (g.finding.kind === 'reference' ? g.finding.refId : g.finding.href))
@@ -363,7 +412,7 @@ export function ResultRow({
       paddingY={3}
       style={{
         borderBottom: showDivider ? '1px solid var(--card-border-color)' : undefined,
-        ...(multi ? undefined : leavingStyle(leaving)),
+        ...leavingStyle(leaving),
       }}
     >
       <Flex align="center" gap={3} style={{position: 'relative', cursor: 'pointer'}}>
@@ -421,35 +470,29 @@ export function ResultRow({
           gap={[2, 2, 3]}
           style={{flexShrink: 0, position: 'relative', zIndex: 2}}
         >
-          {multi ? (
-            <Tooltip
-              content={<Text size={1}>{expanded ? t('result.collapse') : t('result.expand')}</Text>}
-              placement="top"
-              portal
-            >
-              <Button
-                aria-expanded={expanded}
-                aria-label={expanded ? t('result.collapse') : t('result.expand')}
-                icon={expanded ? ChevronUpIcon : ChevronDownIcon}
-                mode="ghost"
-                fontSize={1}
-                padding={2}
-                onClick={handleToggleExpanded}
-              />
-            </Tooltip>
-          ) : (
-            <>
-              <StatusBadgeFor finding={finding} />
-              {finding.kind === 'link' && <OpenLinkButton href={finding.href} />}
-              {isActionable(finding, acknowledged) && (
-                <ResolveButton acknowledged={acknowledged} disabled={leaving} onClick={trigger} />
-              )}
-            </>
+          <AggregateStatusBadge groups={groups} />
+          {anyActionable && (
+            <ResolveButton acknowledged={acknowledged} disabled={leaving} onClick={trigger} />
           )}
+          <Tooltip
+            content={<Text size={1}>{expanded ? t('result.collapse') : t('result.expand')}</Text>}
+            placement="top"
+            portal
+          >
+            <Button
+              aria-expanded={expanded}
+              aria-label={expanded ? t('result.collapse') : t('result.expand')}
+              icon={expanded ? ChevronUpIcon : ChevronDownIcon}
+              mode="ghost"
+              fontSize={1}
+              padding={2}
+              onClick={handleToggleExpanded}
+            />
+          </Tooltip>
           <DocStateDot state={finding.docState} updatedAt={finding.docStateUpdatedAt} />
         </Flex>
       </Flex>
-      {multi && expanded && (
+      {expanded && (
         <Box marginTop={3} paddingLeft={4}>
           <Stack gap={0}>
             {groups.map((group) => (

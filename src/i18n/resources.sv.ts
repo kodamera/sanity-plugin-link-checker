@@ -68,6 +68,7 @@ const resources = {
   'status.gateway-timeout': 'Gateway-timeout',
   'status.intentionally-removed': 'Avsiktligt borttagen',
   'status.internal-server-error': 'Internt serverfel',
+  'status.mixed-statuses': 'Olika statusar per länk - visa detaljer för mer information',
   'status.not-found': 'Hittades inte',
   'status.points-to-deleted-document': 'Pekar på ett borttaget dokument',
   'status.rate-limited': 'Hastighetsbegränsad',

@@ -68,6 +68,7 @@ const resources = {
   'status.gateway-timeout': 'Gateway timeout',
   'status.intentionally-removed': 'Intentionally removed',
   'status.internal-server-error': 'Internal server error',
+  'status.mixed-statuses': 'Different statuses per link - expand the row for details',
   'status.not-found': 'Not found',
   'status.points-to-deleted-document': 'Points to a deleted document',
   'status.rate-limited': 'Rate-limited',
