@@ -58,6 +58,7 @@
     "link-watch": "plugin-kit link-watch",
     "lint": "eslint .",
     "prepublishOnly": "npm run build",
+    "test": "vitest run",
     "watch": "pkg-utils watch --strict"
   },
   "dependencies": {
@@ -86,7 +87,8 @@
     "react-dom": "^19.2.7",
     "sanity": "^6.4.0",
     "styled-components": "^6.4.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   },
   "peerDependencies": {
     "react": "^18 || ^19",
