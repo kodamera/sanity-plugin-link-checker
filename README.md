@@ -1,5 +1,10 @@
 <p align="center">
-  <img src="assets/logo.png" alt="sanity-plugin-link-checker" width="200" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
+    <img src="assets/logo.png" alt="sanity-plugin-link-checker" width="200" />
+  </picture>
+  <br />
+  <sub>Built by <a href="https://www.kodamera.se">Kodamera</a></sub>
 </p>
 
 # sanity-plugin-link-checker
@@ -12,7 +17,6 @@ box for internal reference checks; deploy the included Document Function once fo
 accurate external-link results too.
 
 ![Screenshot of the Link Checker tool](assets/screenshot.png)
-<!-- TODO(operator): capture Studio screenshot, ~1200px wide, light theme -->
 
 ## Features
 
