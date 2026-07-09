@@ -334,7 +334,6 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                 source={result.source}
                 documentsScanned={result.documentsScanned}
                 urlsChecked={result.urlsChecked}
-                linkInstanceCount={linkFindings.length}
               />
             )}
 
