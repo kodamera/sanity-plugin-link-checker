@@ -109,11 +109,11 @@ export function TabbedFindings<T extends ScanFinding>({
 
       {/* A little min-height so an empty tab doesn't collapse the whole page height - softens
           the jump when switching from a tall tab to an empty one, without faking scroll space
-          that genuinely isn't needed. */}
+          that genuinely isn't needed. Kept to roughly two rows' worth. */}
       <TabPanel
         aria-labelledby={`${idPrefix}-tab-${activeTab.key}`}
         id={`${idPrefix}-panel-${activeTab.key}`}
-        style={{minHeight: 160}}
+        style={{minHeight: 96}}
       >
         {activeTab.docGroups.length === 0 && (
           // Same padding as a row's own top inset, so the empty message's text sits at the

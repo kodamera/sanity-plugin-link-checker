@@ -397,7 +397,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
               : undefined
           }
         >
-          <Stack gap={[4, 4, 5]}>
+          <Stack gap={4}>
             {result && (
               <ScanSummaryCard
                 issueCount={issueCount}
