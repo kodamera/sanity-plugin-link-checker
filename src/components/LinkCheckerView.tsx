@@ -16,7 +16,9 @@ import {
   type ScanFinding,
   type ScanResult,
 } from '../lib/types'
+import {DocumentDialog} from './DocumentDialog'
 import {LinkResultsTabs} from './LinkResultsTabs'
+import {type FindingGroup} from './ResultRow'
 import {
   AwaitingFunctionBanner,
   CorsBanner,
@@ -52,6 +54,27 @@ function summarizeHeadline(
   return {issueCount, issueBreakdown: breakdownParts.length > 0 ? breakdownParts.join(' · ') : null}
 }
 
+/**
+ * The inspected document's findings for the Details dialog: every distinct URL/reference
+ * with a problem (broken/unverifiable links and dangling references; working links are
+ * noise here), grouped exactly like the list rows group them.
+ */
+function groupDocFindings(findings: ScanFinding[], docId: string): FindingGroup[] {
+  const groups = new Map<string, FindingGroup>()
+  for (const finding of findings) {
+    if (finding.fromId !== docId) continue
+    if (finding.kind === 'link' && finding.result.status === 'ok') continue
+    const identity = finding.kind === 'reference' ? finding.refId : finding.href
+    const group = groups.get(identity)
+    if (group) {
+      group.keys.push(getFindingKey(finding))
+    } else {
+      groups.set(identity, {finding, keys: [getFindingKey(finding)]})
+    }
+  }
+  return Array.from(groups.values())
+}
+
 function DatasetName({children}: {children?: ReactNode}): JSX.Element {
   return (
     <strong>
@@ -69,14 +92,16 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   const {basePath} = useWorkspace()
   const structureToolName = config.structureToolName ?? 'structure'
 
+  // `focus: false` opens the document without field focus - used when a row stands for
+  // several link instances and focusing any single one of them would be arbitrary.
   const editHref = useCallback(
-    (finding: ScanFinding) =>
+    (finding: ScanFinding, focus = true) =>
       buildEditPath({
         basePath,
         structureToolName,
         documentId: finding.fromId,
         documentType: finding.fromType,
-        focusPath: finding.focusPath,
+        focusPath: focus ? finding.focusPath : undefined,
       }),
     [basePath, structureToolName],
   )
@@ -84,11 +109,21 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   // Opens the document's standalone editor pane in the current tab, bypassing edit-intent
   // resolution (which can nest it under an unrelated parent pane).
   const handleOpenEdit = useCallback(
-    (finding: ScanFinding) => {
-      router.navigateUrl({path: editHref(finding)})
+    (finding: ScanFinding, focus = true) => {
+      router.navigateUrl({path: editHref(finding, focus)})
     },
     [router, editHref],
   )
+
+  // Which document's Details dialog is open lives in the tool's router state
+  // (/doc/:inspectDocId) rather than useState - refresh restores the dialog, the browser
+  // back button closes it, and the URL is shareable with a teammate.
+  const inspectDocId = (router.state as {inspectDocId?: string}).inspectDocId
+  const handleOpenDetails = useCallback(
+    (docId: string) => router.navigate({inspectDocId: docId}),
+    [router],
+  )
+  const handleCloseDetails = useCallback(() => router.navigate({}), [router])
 
   const [result, setResult] = useState<ScanResult | null>(() =>
     projectId && dataset ? loadCachedResult(projectId, dataset) : null,
@@ -239,6 +274,11 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   )
 
   const {issueCount, issueBreakdown} = summarizeHeadline(activeBrokenRefs, activeBrokenLinks, t)
+
+  const inspectedGroups = useMemo(
+    () => (inspectDocId && result ? groupDocFindings(result.findings, inspectDocId) : []),
+    [inspectDocId, result],
+  )
   // Hold external-link display while a Function may be about to replace them: only a
   // browser-sourced result is provisional, and only when no custom checkUrl is configured
   // (a proxy-backed browser scan IS accurate and should show immediately).
@@ -375,6 +415,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                   acknowledgedKeys={acknowledgedKeys}
                   onToggleAcknowledged={handleToggleAcknowledged}
                   onOpenEdit={handleOpenEdit}
+                  onOpenDetails={handleOpenDetails}
                   editHref={editHref}
                 />
               </Stack>
@@ -398,12 +439,24 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                     onToggleAcknowledged={handleToggleAcknowledged}
                     editHref={editHref}
                     onOpenEdit={handleOpenEdit}
+                    onOpenDetails={handleOpenDetails}
                   />
                 )}
               </Stack>
             )}
           </Stack>
         </Box>
+
+        {inspectedGroups.length > 0 && (
+          <DocumentDialog
+            groups={inspectedGroups}
+            previewDocument={inspectDocId ? previewDocuments.get(inspectDocId) : undefined}
+            acknowledgedKeys={acknowledgedKeys}
+            onToggleAcknowledged={handleToggleAcknowledged}
+            editHref={editHref}
+            onClose={handleCloseDetails}
+          />
+        )}
 
         <Box />
       </Stack>

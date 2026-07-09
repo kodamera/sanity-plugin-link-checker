@@ -73,25 +73,9 @@ function LaunchIcon(): JSX.Element {
   )
 }
 
-function ChevronRightIcon(): JSX.Element {
-  return (
-    <svg
-      viewBox="0 0 25 25"
-      width="1em"
-      height="1em"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      style={{display: 'block'}}
-    >
-      <path d="M10.5 8l4.5 4.5L10.5 17" />
-    </svg>
-  )
-}
-
-/** All keys resolved -> the row/sub-row reads as resolved; toggling settles a mixed group
+/** All keys resolved -> the row reads as resolved; toggling settles a mixed group
  * (possible with report data written before grouping existed) instead of inverting it. */
-function useResolveToggle(
+export function useResolveToggle(
   keys: string[],
   acknowledgedKeys: Set<string>,
   onToggleAcknowledged: (key: string) => void,
@@ -128,7 +112,7 @@ const leavingStyle = (leaving: boolean): CSSProperties => ({
 
 // Opens the actual URL so an editor can eyeball a "blocked"/"broken" verdict themselves -
 // a plain anchor (not window.open) so middle-click and cmd-click behave natively too.
-function OpenLinkButton({href}: {href: string}): JSX.Element {
+export function OpenLinkButton({href}: {href: string}): JSX.Element {
   const {t} = useTranslation(linkCheckerLocaleNamespace)
   return (
     <Tooltip content={<Text size={1}>{t('result.open-link-tooltip')}</Text>} placement="top" portal>
@@ -153,13 +137,13 @@ function OpenLinkButton({href}: {href: string}): JSX.Element {
 // read as hesitant rather than a confident action. Tooltip spells out the effect.
 // mode="ghost" (visible outline) instead of "bleed" (invisible until hover) - otherwise
 // this reads as plain text next to the badge.
-function ResolveButton({
+export function ResolveButton({
   acknowledged,
-  disabled,
+  disabled = false,
   onClick,
 }: {
   acknowledged: boolean
-  disabled: boolean
+  disabled?: boolean
   onClick: () => void
 }): JSX.Element {
   const {t} = useTranslation(linkCheckerLocaleNamespace)
@@ -185,12 +169,18 @@ function ResolveButton({
   )
 }
 
-function StatusBadgeFor({finding}: {finding: ScanFinding}): JSX.Element {
+export function StatusBadgeFor({finding}: {finding: ScanFinding}): JSX.Element {
   return finding.kind === 'reference' ? (
     <ReferenceStatusBadge />
   ) : (
     <LinkStatusBadge result={finding.result} />
   )
+}
+
+export function isActionable(finding: ScanFinding, acknowledged: boolean): boolean {
+  // A working link has nothing to fix - only offer the action where there's an actual
+  // problem (always true for a dangling reference), or to let someone revert a past mark.
+  return finding.kind === 'reference' || finding.result.status !== 'ok' || acknowledged
 }
 
 const CATEGORY_BADGE: Record<
@@ -205,8 +195,8 @@ const CATEGORY_BADGE: Record<
 /**
  * The document row's badge. All of the document's findings showing the same result render
  * that concrete badge (the 404 itself); different results collapse to a category label
- * ("Broken") whose tooltip says to expand for the per-URL codes. A tab only ever mixes
- * results within one status category, so the label is always truthful.
+ * ("Broken") whose tooltip points at the Details dialog for the per-URL codes. A tab only
+ * ever mixes results within one status category, so the label is always truthful.
  */
 function AggregateStatusBadge({groups}: {groups: FindingGroup[]}): JSX.Element {
   const {t} = useTranslation(linkCheckerLocaleNamespace)
@@ -235,12 +225,6 @@ function AggregateStatusBadge({groups}: {groups: FindingGroup[]}): JSX.Element {
   )
 }
 
-function isActionable(finding: ScanFinding, acknowledged: boolean): boolean {
-  // A working link has nothing to fix - only offer the action where there's an actual
-  // problem (always true for a dangling reference), or to let someone revert a past mark.
-  return finding.kind === 'reference' || finding.result.status !== 'ok' || acknowledged
-}
-
 /** Lets the browser handle modifier/middle clicks natively (open in new tab/window),
  * hijacking only a plain left-click for client-side navigation. */
 function makeEditClickHandler(onOpen: () => void) {
@@ -253,73 +237,12 @@ function makeEditClickHandler(onOpen: () => void) {
   }
 }
 
-/** One URL/reference line under an expanded document row. */
-function SubRow({
-  group,
-  acknowledgedKeys,
-  onToggleAcknowledged,
-  editHref,
-  onOpenEdit,
-}: {
-  group: FindingGroup
-  acknowledgedKeys: Set<string>
-  onToggleAcknowledged: (key: string) => void
-  editHref: (f: ScanFinding) => string
-  onOpenEdit: (f: ScanFinding) => void
-}): JSX.Element {
-  const {t} = useTranslation(linkCheckerLocaleNamespace)
-  const {finding, keys} = group
-  const {acknowledged, toggle} = useResolveToggle(keys, acknowledgedKeys, onToggleAcknowledged)
-  const {leaving, trigger} = useLeaving(toggle)
-
-  const value = finding.kind === 'reference' ? finding.refId : finding.href
-  const label =
-    keys.length > 1 ? `${value} · ${t('result.occurrences', {count: keys.length})}` : value
-
-  const handleOpen = useCallback(() => onOpenEdit(finding), [onOpenEdit, finding])
-  const handleClick = useMemo(() => makeEditClickHandler(handleOpen), [handleOpen])
-
-  return (
-    <Flex
-      align="center"
-      gap={[2, 2, 3]}
-      paddingY={2}
-      style={{borderTop: '1px solid var(--card-border-color)', ...leavingStyle(leaving)}}
-    >
-      <Box
-        flex={1}
-        title={`${describeFieldPath(finding.fieldPath)} — ${value}`}
-        style={{minWidth: 0, opacity: acknowledged ? 0.5 : 1}}
-      >
-        <Text size={1} muted>
-          {/* The value itself links to the document focused at THIS occurrence - each
-              sub-row can point at a different field than its siblings. */}
-          <a
-            href={editHref(finding)}
-            onClick={handleClick}
-            style={{color: 'inherit', textDecoration: 'none'}}
-          >
-            <span style={clampStyleUrl}>{label}</span>
-          </a>
-        </Text>
-      </Box>
-      <Flex align="center" gap={[2, 2, 3]} style={{flexShrink: 0}}>
-        <StatusBadgeFor finding={finding} />
-        {finding.kind === 'link' && <OpenLinkButton href={finding.href} />}
-        {isActionable(finding, acknowledged) && (
-          <ResolveButton acknowledged={acknowledged} disabled={leaving} onClick={trigger} />
-        )}
-      </Flex>
-    </Flex>
-  )
-}
-
 /**
- * One row per document: a document with a single problem URL/reference renders exactly like
- * a flat finding row (value in the subtitle, actions inline), while a document with several
- * distinct problems shows counts ("3 links · 5 places") and expands into one sub-row per
- * URL/reference. Editors think in documents to fix, not finding instances - this keeps the
- * list length equal to the number of problem documents.
+ * One row per document, always one line, always the same trailing controls: aggregate
+ * status badge, Details (opens the document's URL dialog), Resolve (settles the whole
+ * document), doc-state dot. Per-URL specifics live in the Details dialog. Editors think
+ * in documents to fix, not finding instances - the list length equals the number of
+ * problem documents.
  */
 export function ResultRow({
   groups,
@@ -328,6 +251,7 @@ export function ResultRow({
   onToggleAcknowledged,
   editHref,
   onOpenEdit,
+  onOpenDetails,
   showDivider = true,
 }: {
   /** Every URL/reference group belonging to one document (same fromId), length >= 1. */
@@ -336,10 +260,12 @@ export function ResultRow({
   acknowledgedKeys: Set<string>
   onToggleAcknowledged: (key: string) => void
   /** Builds the full URL of the standalone editor for a finding - used as anchor hrefs so
-   * cmd/middle-click opens a new tab. */
-  editHref: (f: ScanFinding) => string
+   * cmd/middle-click opens a new tab. `focus: false` skips field focus. */
+  editHref: (f: ScanFinding, focus?: boolean) => string
   /** Client-side same-tab navigation for a plain left-click. */
-  onOpenEdit: (f: ScanFinding) => void
+  onOpenEdit: (f: ScanFinding, focus?: boolean) => void
+  /** Opens the document's Details dialog. */
+  onOpenDetails: (docId: string) => void
   /** False for the last row in a list, so no trailing hairline is left dangling below it. */
   showDivider?: boolean
 }): JSX.Element {
@@ -348,7 +274,6 @@ export function ResultRow({
   const finding = groups[0].finding
   const schemaType = schema.get(finding.fromType)
   const multi = groups.length > 1
-  const [expanded, setExpanded] = useState(false)
 
   const allKeys = useMemo(() => groups.flatMap((g) => g.keys), [groups])
   const {acknowledged, toggle} = useResolveToggle(allKeys, acknowledgedKeys, onToggleAcknowledged)
@@ -387,9 +312,19 @@ export function ResultRow({
         .join('\n')
     : `${finding.fieldPath} — ${brokenValue}`
 
-  const handleOpen = useCallback(() => onOpenEdit(finding), [onOpenEdit, finding])
+  // A single-problem row targets the exact field instance (unambiguous); a multi-problem
+  // row opens the document without focus - focusing any one of its instances would be
+  // arbitrary. The per-instance focus links live in the Details dialog.
+  const focusOnOpen = !multi
+  const handleOpen = useCallback(
+    () => onOpenEdit(finding, focusOnOpen),
+    [onOpenEdit, finding, focusOnOpen],
+  )
   const handleLinkClick = useMemo(() => makeEditClickHandler(handleOpen), [handleOpen])
-  const handleToggleExpanded = useCallback(() => setExpanded((v) => !v), [])
+  const handleDetails = useCallback(
+    () => onOpenDetails(finding.fromId),
+    [onOpenDetails, finding.fromId],
+  )
 
   return (
     <Box
@@ -400,12 +335,12 @@ export function ResultRow({
       }}
     >
       <Flex align="center" gap={3} style={{position: 'relative', cursor: 'pointer'}}>
-        {/* Full-header overlay anchor: the whole header is a link to the document. Sits at
+        {/* Full-row overlay anchor: the whole row is a link to the document. Sits at
             z-index 1; the trailing controls group at z-index 2 stays hoverable/clickable
             above it (badges and dots included - their tooltips need real hover). */}
         <a
           aria-label={`${finding.fromType} (${finding.fromId})`}
-          href={editHref(finding)}
+          href={editHref(finding, focusOnOpen)}
           onClick={handleLinkClick}
           style={{
             position: 'absolute',
@@ -413,24 +348,6 @@ export function ResultRow({
             zIndex: 1,
           }}
         />
-        {/* Leading disclosure chevron, the way file trees do it (points right, rotates down
-            when open) - borderless so it reads as a list affordance, not a form control. It
-            leads the row so every row's expandability is visible in one aligned column. */}
-        <Box style={{position: 'relative', zIndex: 2, flexShrink: 0}}>
-          <Button
-            aria-expanded={expanded}
-            aria-label={expanded ? t('result.collapse') : t('result.expand')}
-            icon={ChevronRightIcon}
-            mode="bleed"
-            fontSize={1}
-            padding={2}
-            onClick={handleToggleExpanded}
-            style={{
-              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 120ms ease',
-            }}
-          />
-        </Box>
         <Stack gap={2} flex={1} style={{minWidth: 0, opacity: acknowledged ? 0.5 : 1}}>
           {schemaType && previewDocument ? (
             <Box title={hoverTitle} style={{minWidth: 0}}>
@@ -473,30 +390,19 @@ export function ResultRow({
           style={{flexShrink: 0, position: 'relative', zIndex: 2}}
         >
           <AggregateStatusBadge groups={groups} />
+          <Button
+            text={t('result.details')}
+            mode="ghost"
+            fontSize={1}
+            padding={2}
+            onClick={handleDetails}
+          />
           {anyActionable && (
             <ResolveButton acknowledged={acknowledged} disabled={leaving} onClick={trigger} />
           )}
           <DocStateDot state={finding.docState} updatedAt={finding.docStateUpdatedAt} />
         </Flex>
       </Flex>
-      {expanded && (
-        // Indented to start where the header's content column starts (past the chevron),
-        // so the sub-rows read as children of the document line above.
-        <Box marginTop={3} paddingLeft={5}>
-          <Stack gap={0}>
-            {groups.map((group) => (
-              <SubRow
-                key={group.keys[0]}
-                group={group}
-                acknowledgedKeys={acknowledgedKeys}
-                onToggleAcknowledged={onToggleAcknowledged}
-                editHref={editHref}
-                onOpenEdit={onOpenEdit}
-              />
-            ))}
-          </Stack>
-        </Box>
-      )}
     </Box>
   )
 }

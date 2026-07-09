@@ -13,6 +13,7 @@ export function LinkResultsTabs({
   onToggleAcknowledged,
   editHref,
   onOpenEdit,
+  onOpenDetails,
 }: {
   findings: BrokenLink[]
   previewDocuments: Map<string, PreviewDocumentValue>
@@ -20,6 +21,7 @@ export function LinkResultsTabs({
   onToggleAcknowledged: (key: string) => void
   editHref: (finding: ScanFinding) => string
   onOpenEdit: (finding: ScanFinding) => void
+  onOpenDetails: (docId: string) => void
 }): JSX.Element {
   const {t} = useTranslation(linkCheckerLocaleNamespace)
   const isResolved = (f: BrokenLink) => acknowledgedKeys.has(getFindingKey(f))
@@ -60,6 +62,7 @@ export function LinkResultsTabs({
       acknowledgedKeys={acknowledgedKeys}
       onToggleAcknowledged={onToggleAcknowledged}
       onOpenEdit={onOpenEdit}
+      onOpenDetails={onOpenDetails}
       editHref={editHref}
     />
   )

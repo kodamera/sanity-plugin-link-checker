@@ -54,6 +54,7 @@ export function TabbedFindings<T extends ScanFinding>({
   acknowledgedKeys,
   onToggleAcknowledged,
   onOpenEdit,
+  onOpenDetails,
   editHref,
 }: {
   idPrefix: string
@@ -62,6 +63,7 @@ export function TabbedFindings<T extends ScanFinding>({
   acknowledgedKeys: Set<string>
   onToggleAcknowledged: (key: string) => void
   onOpenEdit: (finding: ScanFinding) => void
+  onOpenDetails: (docId: string) => void
   editHref: (finding: ScanFinding) => string
 }): JSX.Element {
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.key)
@@ -130,6 +132,7 @@ export function TabbedFindings<T extends ScanFinding>({
               onToggleAcknowledged={onToggleAcknowledged}
               editHref={editHref}
               onOpenEdit={onOpenEdit}
+              onOpenDetails={onOpenDetails}
               showDivider={index < activeTab.docGroups.length - 1}
             />
           ))}
