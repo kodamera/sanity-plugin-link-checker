@@ -1,4 +1,4 @@
-import {Box, Button, Card, Container, Flex, Heading, Stack, Text} from '@sanity/ui'
+import {Box, Button, Container, Flex, Heading, Stack, Text} from '@sanity/ui'
 import {type JSX, type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {Translate, useClient, useTranslation, useWorkspace} from 'sanity'
 import {useRouter} from 'sanity/router'
@@ -289,6 +289,12 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
 
   const {issueCount, issueBreakdown} = summarizeHeadline(activeBrokenRefs, activeBrokenLinks, t)
 
+  const showLinkSection = useMemo(
+    () =>
+      linkFindings.some((f) => f.result.status !== 'ok' || acknowledgedKeys.has(getFindingKey(f))),
+    [linkFindings, acknowledgedKeys],
+  )
+
   const inspectedGroups = useMemo(
     () => (inspectDocId && result ? groupDocFindings(result.findings, inspectDocId) : []),
     [inspectDocId, result],
@@ -413,12 +419,6 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
 
             {showCorsBanner && <CorsBanner onDismiss={handleDismissBanner} />}
 
-            {result && issueCount === 0 && !holdingExternalLinks && (
-              <Card padding={4} radius={2} shadow={0} tone="positive">
-                <Text>{t('findings.all-clear')}</Text>
-              </Card>
-            )}
-
             {brokenRefs.length > 0 && (
               <Stack gap={4}>
                 <Stack gap={2}>
@@ -454,7 +454,10 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
               </Stack>
             )}
 
-            {(linkFindings.length > 0 || holdingExternalLinks) && (
+            {/* Hidden when every checked link is fine - the all-clear card above already
+                says so, and tabs full of zeros under it read as unfinished work. Appears
+                as soon as there's anything to triage (or to audit in Resolved). */}
+            {(showLinkSection || holdingExternalLinks) && (
               <Stack gap={4}>
                 <Stack gap={3}>
                   <Heading size={1}>{t('findings.external-links.title')}</Heading>

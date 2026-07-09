@@ -21,7 +21,6 @@ const resources = {
   'empty.resolved': 'Nothing resolved yet.',
   'empty.unverifiable-links': 'No unverifiable links.',
   'empty.working-links': 'No working links checked yet.',
-  'findings.all-clear': 'No broken links or references found.',
   'findings.broken-links_one': '{{count}} broken link',
   'findings.broken-links_other': '{{count}} broken links',
   'findings.broken-references.description':

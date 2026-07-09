@@ -1,5 +1,5 @@
-import {documentEventHandler} from '@sanity/functions'
 import {createClient} from '@sanity/client'
+import {documentEventHandler} from '@sanity/functions'
 import {readTriggerScanConfig, runScan, writeReport} from 'sanity-plugin-link-checker/core'
 
 // Triggered by the Studio's "Run scan" button writing the linkCheckerTrigger document.

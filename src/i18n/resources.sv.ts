@@ -21,7 +21,6 @@ const resources = {
   'empty.resolved': 'Inget löst än.',
   'empty.unverifiable-links': 'Inga länkar som inte går att verifiera.',
   'empty.working-links': 'Inga fungerande länkar har kontrollerats än.',
-  'findings.all-clear': 'Inga brutna länkar eller referenser hittades.',
   'findings.broken-links_one': '{{count}} bruten länk',
   'findings.broken-links_other': '{{count}} brutna länkar',
   'findings.broken-references.description':
