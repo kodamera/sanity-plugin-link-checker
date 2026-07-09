@@ -77,7 +77,7 @@ export function ScanSummaryCard({
               display: grid;
               grid-template-columns: repeat(3, max-content);
               column-gap: 3rem;
-              row-gap: 1.25rem;
+              row-gap: 1.5rem;
               align-items: start;
             }
             .${GRID_CLASS}-spacer {
@@ -105,11 +105,6 @@ export function ScanSummaryCard({
               divider (and then the stats) onto their own row instead of into this one. Hidden
               on mobile, where it isn't part of a grid at all. */}
           <div className={`${GRID_CLASS}-spacer`} />
-
-          <div
-            className={`${GRID_CLASS}-divider`}
-            style={{borderTop: '1px solid var(--card-border-color)'}}
-          />
 
           <StatTile value={documentsScanned} label="Documents scanned" />
           <StatTile value={urlsChecked} label="Unique URLs" />
