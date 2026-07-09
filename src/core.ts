@@ -11,7 +11,12 @@ export {
   writeReport,
 } from './lib/reportDocument'
 export {runScan} from './lib/runScan'
-export {TRIGGER_DOC_ID, TRIGGER_DOC_TYPE, writeTrigger} from './lib/triggerDocument'
+export {
+  readTriggerScanConfig,
+  TRIGGER_DOC_ID,
+  TRIGGER_DOC_TYPE,
+  writeTrigger,
+} from './lib/triggerDocument'
 export type {
   BrokenLink,
   BrokenReference,

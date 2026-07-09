@@ -221,8 +221,9 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
       // Harmless no-op if no Document Function is deployed - if one is, it'll rerun the
       // scan server-side (no CORS) and the listener above picks up the real result whenever
       // it finishes, which can take a while. We can't observe whether a Function actually
-      // exists or is running, only whether a fresher report ever shows up.
-      writeTrigger(client)
+      // exists or is running, only whether a fresher report ever shows up. The plugin
+      // config rides along so the Function scans with the same scope as sanity.config.ts.
+      writeTrigger(client, config)
         .then(() => {
           setAwaitingFunction(true)
           clearAwaitTimeout()

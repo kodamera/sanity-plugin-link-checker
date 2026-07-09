@@ -26,7 +26,7 @@ Options:
 
 const FUNCTION_TEMPLATE = `import {documentEventHandler} from '@sanity/functions'
 import {createClient} from '@sanity/client'
-import {runScan, writeReport} from 'sanity-plugin-link-checker/core'
+import {readTriggerScanConfig, runScan, writeReport} from 'sanity-plugin-link-checker/core'
 
 // Triggered by the Studio's "Run scan" button writing the linkCheckerTrigger document.
 // Runs entirely in Node (this Function's runtime), so external link checks get real
@@ -38,7 +38,11 @@ export const handler = documentEventHandler(async ({context}) => {
     useCdn: false,
   })
 
-  const result = await runScan(client, {}, 'function')
+  // The scan-scope config (excludeTypes, excludeUrls, concurrency, ...) from
+  // sanity.config.ts rides along on the trigger document - the Function always scans
+  // with the same scope as the Studio, no config duplicated here.
+  const scanConfig = await readTriggerScanConfig(client)
+  const result = await runScan(client, scanConfig, 'function')
   await writeReport(client, result)
 })
 `
