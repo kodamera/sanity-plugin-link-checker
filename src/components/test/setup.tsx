@@ -2,11 +2,21 @@
 import '@testing-library/jest-dom/vitest'
 
 import {studioTheme, ThemeProvider} from '@sanity/ui'
-import {render} from '@testing-library/react'
+import {cleanup, render} from '@testing-library/react'
 import type {JSX, ReactNode} from 'react'
+import {afterEach} from 'vitest'
 
 import type {ScanFinding} from '../../lib/types'
 import type {FindingGroup} from '../ResultRow'
+
+// @testing-library/react auto-registers this itself when it finds a global `afterEach` -
+// this repo's vitest.config.ts doesn't set `test.globals: true`, so `afterEach` isn't a
+// global here and that auto-registration silently no-ops. Without it, every render() in a
+// file accumulates in document.body instead of being unmounted between tests, corrupting
+// later assertions in the same file (queries start matching duplicate elements).
+afterEach(() => {
+  cleanup()
+})
 
 /** Mocks every 'sanity' export the components use. Call from vi.mock factories. */
 export function sanityMock() {
