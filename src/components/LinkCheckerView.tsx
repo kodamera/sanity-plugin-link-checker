@@ -328,8 +328,16 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
           the cap apply to the content instead of just clipping it. */}
       {/* SanityDefaultPreview's root carries its own left padding (built for Studio pane
           lists, where it aligns with pane chrome) - here it just insets every row's media
-          from the list edge. Its stable data-testid is the only hook it exposes. */}
-      <style>{`.lc-row-preview [data-testid="default-preview"] { padding-left: 0; }`}</style>
+          from the list edge. Its stable data-testid is the only hook it exposes.
+
+          Row hover: Studio pane items get their hover background from being interactive
+          Cards (as="a"), which these rows can't be - they contain nested buttons, so the
+          document link is an overlay anchor instead. The same visual is recreated from the
+          theme's foreground color, so it tracks light/dark and tone automatically. */}
+      <style>{`
+        .lc-row-preview [data-testid="default-preview"] { padding-left: 0; }
+        .lc-row:hover { background-color: color-mix(in srgb, var(--card-fg-color) 5%, transparent); }
+      `}</style>
       <Stack gap={[4, 4, 5]} style={{width: '100%', minWidth: 0}}>
         {/* Column on narrow screens, not a row that hopes flex-wrap kicks in at the right
             threshold - the button unconditionally sits below the title instead of risking

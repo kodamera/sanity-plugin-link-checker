@@ -361,6 +361,7 @@ export function ResultRow({
 
   return (
     <Box
+      className="lc-row"
       paddingY={0}
       style={{
         borderBottom: showDivider ? '1px solid var(--card-border-color)' : undefined,
