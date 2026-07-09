@@ -31,15 +31,23 @@ export const PAGE_SIZE = 500
  * new findings on every subsequent scan (self-contamination, roughly doubling the count
  * each generation).
  *
+ * Also excludes the whole `sanity.` type namespace: `sanity.imageAsset`/`sanity.fileAsset`
+ * carry upstream metadata URLs (e.g. the Unsplash page an image was imported from) that
+ * aren't content links, and `sanity.previewUrlSecret` documents (Presentation tool) hold
+ * live preview secrets that must never surface in a findings list. Excluding assets from
+ * the scan does NOT hide broken references to assets - the existence check in
+ * scanInternalRefs queries the dataset directly, not this document set.
+ *
  * Paginated by _id cursor: bounds each request's payload so datasets with tens of
  * thousands of documents don't hit response-size limits or hold one giant response
  * in memory at once. _id is unique and totally ordered, so `_id > $lastId` with
  * `order(_id asc)` visits every document exactly once.
  */
-const PAGE_QUERY = `*[!(_id in path("_.**")) && _type != $reportType && _type != $triggerType && _id > $lastId] | order(_id asc) [0...${PAGE_SIZE}]`
+const PAGE_QUERY = `*[!(_id in path("_.**")) && !string::startsWith(_type, "sanity.") && _type != $reportType && _type != $triggerType && !(_type in $excludeTypes) && _id > $lastId] | order(_id asc) [0...${PAGE_SIZE}]`
 
 async function fetchAllDocs(
   client: SanityClient,
+  excludeTypes: string[],
   onProgress?: (message: string, done: number, total: number) => void,
 ): Promise<RawDoc[]> {
   const docs: RawDoc[] = []
@@ -49,6 +57,7 @@ async function fetchAllDocs(
     const page = await client.fetch<RawDoc[]>(PAGE_QUERY, {
       reportType: REPORT_DOC_TYPE,
       triggerType: TRIGGER_DOC_TYPE,
+      excludeTypes,
       lastId,
     })
     docs.push(...page)
@@ -162,7 +171,7 @@ export async function runScan(
   // as broken). Pin it so draft coverage doesn't hinge on which apiVersion a user picked.
   const rawClient = client.withConfig({perspective: 'raw'})
 
-  const docs = await fetchAllDocs(rawClient, onProgress)
+  const docs = await fetchAllDocs(rawClient, config.excludeTypes ?? [], onProgress)
 
   onProgress?.('Checking references', 0, 1)
   const brokenRefs = await scanInternalRefs(rawClient, docs)

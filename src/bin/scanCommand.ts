@@ -26,6 +26,9 @@ Options:
   --out <path>          Also write the report to this local file (optional, e.g. for CI logs)
   --concurrency <n>     Max concurrent external URL checks (default 4)
   --timeout <ms>        Per-request timeout in ms (default 8000)
+  --host-delay <ms>     Min ms between two requests to the same host (default 1000)
+  --exclude-types <t>   Comma-separated document types to skip, in addition to the
+                        always-skipped "sanity.*" system types (e.g. "siteSettings,redirect")
   --fail-on-findings    Exit with code 1 if any broken links/references are found (for CI)
   --help                Show this help
 
@@ -45,6 +48,8 @@ export async function runScanCommand(argv: string[]): Promise<void> {
       out: {type: 'string'},
       concurrency: {type: 'string'},
       timeout: {type: 'string'},
+      'host-delay': {type: 'string'},
+      'exclude-types': {type: 'string'},
       'fail-on-findings': {type: 'boolean', default: false},
       help: {type: 'boolean', default: false},
     },
@@ -79,6 +84,11 @@ export async function runScanCommand(argv: string[]): Promise<void> {
     {
       concurrency: values.concurrency ? Number(values.concurrency) : undefined,
       timeoutMs: values.timeout ? Number(values.timeout) : undefined,
+      hostDelayMs: values['host-delay'] ? Number(values['host-delay']) : undefined,
+      excludeTypes: values['exclude-types']
+        ?.split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
     },
     'cli',
     (message, done, total) => {

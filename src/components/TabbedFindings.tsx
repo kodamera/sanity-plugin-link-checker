@@ -12,6 +12,32 @@ export interface FindingTabDef<T extends ScanFinding> {
   items: T[]
 }
 
+interface FindingGroup<T extends ScanFinding> {
+  finding: T
+  keys: string[]
+}
+
+/**
+ * Collapses occurrences of the same URL/reference within the same document into one row -
+ * a page linking to the same dead URL from four blocks is one problem to fix, not four
+ * list entries. Each group keeps every member's finding key so resolving the row resolves
+ * all of them; the first occurrence's focus path is what the row links to.
+ */
+function groupFindings<T extends ScanFinding>(items: T[]): FindingGroup<T>[] {
+  const groups = new Map<string, FindingGroup<T>>()
+  for (const finding of items) {
+    const identity = finding.kind === 'reference' ? finding.refId : finding.href
+    const groupKey = `${finding.kind}:${finding.fromId}:${identity}`
+    const group = groups.get(groupKey)
+    if (group) {
+      group.keys.push(getFindingKey(finding))
+    } else {
+      groups.set(groupKey, {finding, keys: [getFindingKey(finding)]})
+    }
+  }
+  return Array.from(groups.values())
+}
+
 /**
  * Shared tabbed list used by both the "Broken references" and "External links" sections, so
  * an editor sees the same overview pattern (tabs by status, counts in the tab labels) no
@@ -36,6 +62,11 @@ export function TabbedFindings<T extends ScanFinding>({
 }): JSX.Element {
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.key)
 
+  const groupedTabs = useMemo(
+    () => tabs.map((tab) => ({...tab, groups: groupFindings(tab.items)})),
+    [tabs],
+  )
+
   // Named handlers keyed by tab, built once per `tabs` identity - keeps each Tab's onClick a
   // stable reference lookup instead of a fresh inline arrow per tab on every render.
   const tabClickHandlers = useMemo(
@@ -43,7 +74,7 @@ export function TabbedFindings<T extends ScanFinding>({
     [tabs],
   )
 
-  const activeTab = tabs.find((t) => t.key === activeTabKey) ?? tabs[0]
+  const activeTab = groupedTabs.find((t) => t.key === activeTabKey) ?? groupedTabs[0]
 
   return (
     <Stack gap={3}>
@@ -52,14 +83,14 @@ export function TabbedFindings<T extends ScanFinding>({
           out the page's horizontal extent past the viewport. */}
       <Box style={{overflowX: 'auto', WebkitOverflowScrolling: 'touch'}}>
         <TabList gap={2} style={{width: 'max-content'}}>
-          {tabs.map((t) => {
+          {groupedTabs.map((t) => {
             const handleClick = tabClickHandlers[t.key]
             return (
               <Tab
                 key={t.key}
                 aria-controls={`${idPrefix}-panel-${t.key}`}
                 id={`${idPrefix}-tab-${t.key}`}
-                label={`${t.label} (${t.items.length})`}
+                label={`${t.label} (${t.groups.length})`}
                 onClick={handleClick}
                 selected={activeTab.key === t.key}
               />
@@ -76,7 +107,7 @@ export function TabbedFindings<T extends ScanFinding>({
         id={`${idPrefix}-panel-${activeTab.key}`}
         style={{minHeight: 160}}
       >
-        {activeTab.items.length === 0 && (
+        {activeTab.groups.length === 0 && (
           // Same padding as a row's own top inset, so the empty message's text sits at the
           // exact spot a row's title would - switching tabs doesn't jump the content start.
           <Box paddingY={4} paddingX={1}>
@@ -86,18 +117,23 @@ export function TabbedFindings<T extends ScanFinding>({
           </Box>
         )}
         <Stack gap={0} marginTop={2}>
-          {activeTab.items.map((finding, index) => {
-            const key = getFindingKey(finding)
+          {activeTab.groups.map(({finding, keys}, index) => {
+            const allAcknowledged = keys.every((k) => acknowledgedKeys.has(k))
             return (
               <ResultRow
-                key={key}
+                key={keys[0]}
                 finding={finding}
+                // Resolving a partially-resolved group (possible with pre-grouping report
+                // data) only flips the still-unresolved members - toggling every key would
+                // invert the mixed state instead of settling it.
+                findingKeys={allAcknowledged ? keys : keys.filter((k) => !acknowledgedKeys.has(k))}
+                occurrenceCount={keys.length}
                 previewDocument={previewDocuments.get(finding.fromId)}
-                acknowledged={acknowledgedKeys.has(key)}
+                acknowledged={allAcknowledged}
                 onToggleAcknowledged={onToggleAcknowledged}
                 editHref={editHref(finding)}
                 onOpenEdit={onOpenEdit}
-                showDivider={index < activeTab.items.length - 1}
+                showDivider={index < activeTab.groups.length - 1}
               />
             )
           })}

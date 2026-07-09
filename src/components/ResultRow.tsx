@@ -5,6 +5,7 @@ import {
   type MouseEvent,
   type ReactNode,
   useCallback,
+  useMemo,
   useState,
 } from 'react'
 import {SanityDefaultPreview, useSchema, useTranslation, useValuePreview} from 'sanity'
@@ -46,8 +47,29 @@ const clampStyleUrl: CSSProperties = {
   wordBreak: 'break-all',
 }
 
+// Same drawing conventions as Sanity's own icon set (25x25 viewBox, 1.2 stroke on
+// currentColor) but inlined - @sanity/icons is intentionally not a dependency (see
+// LinkCheckerIcon.tsx).
+function LaunchIcon(): JSX.Element {
+  return (
+    <svg
+      viewBox="0 0 25 25"
+      width="1em"
+      height="1em"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      style={{display: 'block'}}
+    >
+      <path d="M11.5 7.5H6.5V18.5H17.5V13.5M14.5 5.5H19.5V10.5M19.5 5.5L11.5 13.5" />
+    </svg>
+  )
+}
+
 export function ResultRow({
   finding,
+  findingKeys,
+  occurrenceCount = 1,
   previewDocument,
   acknowledged,
   onToggleAcknowledged,
@@ -56,6 +78,13 @@ export function ResultRow({
   showDivider = true,
 }: {
   finding: ScanFinding
+  /** All finding keys this row stands for - more than one when duplicate occurrences of the
+   * same URL/reference in the same document are collapsed into a single row. Resolving the
+   * row resolves every one of them. Defaults to just the finding's own key. */
+  findingKeys?: string[]
+  /** How many places in the document this URL/reference occurs. Shown after the subtitle
+   * when > 1. */
+  occurrenceCount?: number
   previewDocument?: PreviewDocumentValue
   acknowledged: boolean
   onToggleAcknowledged: (key: string) => void
@@ -70,11 +99,15 @@ export function ResultRow({
   const schema = useSchema()
   const schemaType = schema.get(finding.fromType)
   const brokenValue = finding.kind === 'reference' ? finding.refId : finding.href
-  const findingSubtitle = t('result.finding-subtitle', {
+  const subtitleBase = t('result.finding-subtitle', {
     fieldPath: describeFieldPath(finding.fieldPath),
     value: brokenValue,
   })
-  const key = getFindingKey(finding)
+  const findingSubtitle =
+    occurrenceCount > 1
+      ? `${subtitleBase} · ${t('result.occurrences', {count: occurrenceCount})}`
+      : subtitleBase
+  const keys = useMemo(() => findingKeys ?? [getFindingKey(finding)], [findingKeys, finding])
   const [leaving, setLeaving] = useState(false)
   const preview = useValuePreview({
     enabled: Boolean(schemaType && previewDocument),
@@ -92,13 +125,14 @@ export function ResultRow({
   // Fades the row out before it actually leaves the "Active"/"Resolved" tab it's in, instead of
   // it just vanishing mid-list the instant acknowledgedKeys changes and the parent re-filters.
   const handleToggle = useCallback(() => {
+    const toggleAll = () => keys.forEach((k) => onToggleAcknowledged(k))
     if (prefersReducedMotion()) {
-      onToggleAcknowledged(key)
+      toggleAll()
       return
     }
     setLeaving(true)
-    window.setTimeout(() => onToggleAcknowledged(key), EXIT_ANIMATION_MS)
-  }, [onToggleAcknowledged, key])
+    window.setTimeout(toggleAll, EXIT_ANIMATION_MS)
+  }, [onToggleAcknowledged, keys])
 
   const handleOpen = useCallback(() => onOpenEdit(finding), [onOpenEdit, finding])
   const stopRowClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
@@ -179,6 +213,30 @@ export function ResultRow({
             <ReferenceStatusBadge />
           ) : (
             <LinkStatusBadge result={finding.result} />
+          )}
+          {finding.kind === 'link' && (
+            // Opens the actual URL so an editor can eyeball a "blocked"/"broken" verdict
+            // themselves - a plain anchor (not window.open) so middle-click and cmd-click
+            // behave natively too.
+            <Box onClick={stopRowClick} style={{position: 'relative', zIndex: 2}}>
+              <Tooltip
+                content={<Text size={1}>{t('result.open-link-tooltip')}</Text>}
+                placement="top"
+                portal
+              >
+                <Button
+                  as="a"
+                  href={finding.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t('result.open-link-tooltip')}
+                  icon={LaunchIcon}
+                  mode="ghost"
+                  fontSize={1}
+                  padding={2}
+                />
+              </Tooltip>
+            </Box>
           )}
           {isActionable && (
             // "Resolve"/"Unresolve" - the same pairing GitHub uses on PR review threads for

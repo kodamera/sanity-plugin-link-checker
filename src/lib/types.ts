@@ -4,7 +4,7 @@ export interface UrlCheckResult {
   status: UrlCheckStatus
   /** HTTP status code, when one was actually readable. */
   httpStatus?: number
-  reason?: 'timeout' | 'cors' | 'network' | 'http-error'
+  reason?: 'timeout' | 'cors' | 'network' | 'http-error' | 'blocked'
 }
 
 export interface LinkCheckerPluginConfig {
@@ -12,6 +12,12 @@ export interface LinkCheckerPluginConfig {
   concurrency?: number
   /** Per-request timeout in ms. Default: 8000 */
   timeoutMs?: number
+  /**
+   * Minimum ms between two requests to the same host. Default: 1000. Slows the scan only
+   * where one host dominates the URL list, in exchange for far fewer rate-limit (429)
+   * false flags.
+   */
+  hostDelayMs?: number
   /** API version used for the Sanity client. Default: '2024-01-01' */
   apiVersion?: string
   /** Override how a single URL is checked, e.g. to route through a server-side proxy. */
@@ -21,6 +27,11 @@ export interface LinkCheckerPluginConfig {
    * changing if the structure tool was renamed via `structureTool({name: '...'})`.
    */
   structureToolName?: string
+  /**
+   * Additional document types to skip when scanning. Types in the `sanity.` namespace
+   * (image/file assets, Presentation preview secrets, ...) are always skipped.
+   */
+  excludeTypes?: string[]
 }
 
 /** Publish state of the document a finding came from, at scan time. */

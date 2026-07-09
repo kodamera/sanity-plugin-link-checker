@@ -79,6 +79,54 @@ describe('checkUrl', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
+  it('classifies bot-wall statuses as unverifiable/blocked, not broken', async () => {
+    // LinkedIn answers every automated request with 999 - HEAD and the GET retry alike.
+    const fetchMock = vi.fn().mockResolvedValue(mockResponse(999))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await checkUrl('https://www.linkedin.com/in/someone')
+
+    expect(result).toEqual({status: 'unverifiable', httpStatus: 999, reason: 'blocked'})
+  })
+
+  it('retries a blocked HEAD over GET and trusts the GET outcome', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(mockResponse(403))
+      .mockResolvedValueOnce(mockResponse(200))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await checkUrl('https://example.com')
+
+    expect(result).toEqual({status: 'ok', httpStatus: 200})
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://example.com',
+      expect.objectContaining({method: 'GET'}),
+    )
+  })
+
+  it('waits out a 429 and retries once before classifying', async () => {
+    vi.useFakeTimers()
+    try {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(mockResponse(429)) // HEAD
+        .mockResolvedValueOnce(mockResponse(429)) // GET retry of the blocked HEAD
+        .mockResolvedValueOnce(mockResponse(200)) // GET after the rate-limit pause
+      vi.stubGlobal('fetch', fetchMock)
+
+      const promise = checkUrl('https://example.com')
+      await vi.advanceTimersByTimeAsync(2500)
+      const result = await promise
+
+      expect(result).toEqual({status: 'ok', httpStatus: 200})
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('classifies a >=400 status as a broken http-error', async () => {
     const fetchMock = vi.fn().mockResolvedValue(mockResponse(404))
     vi.stubGlobal('fetch', fetchMock)

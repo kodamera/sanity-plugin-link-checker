@@ -10,6 +10,14 @@ const NODE_REQUEST_HEADERS = {
     'Mozilla/5.0 (compatible; sanity-plugin-link-checker/1.0; +https://github.com/kodamera/sanity-plugin-link-checker)',
 }
 
+// Statuses that auth walls and anti-bot layers return to automated clients regardless of
+// whether the page exists for a human visitor: 401/403/407 (auth required), 429 (the
+// checker itself got rate-limited), 999 (LinkedIn's blanket bot response). A link behind
+// one of these may well be fine in a browser, so it must not be reported as broken.
+const BLOCKED_STATUSES = new Set([401, 403, 407, 429, 999])
+
+const RATE_LIMIT_RETRY_DELAY_MS = 2500
+
 async function attemptFetch(url: string, method: 'HEAD' | 'GET', timeoutMs: number) {
   return fetch(url, {
     headers: isNode ? NODE_REQUEST_HEADERS : undefined,
@@ -31,7 +39,13 @@ export async function checkUrl(url: string, timeoutMs = 8000): Promise<UrlCheckR
     let response: Response
     try {
       response = await attemptFetch(url, 'HEAD', timeoutMs)
-      if (response.status === 405 || response.status === 501) {
+      // Retry blocked statuses too: plenty of servers reject HEAD specifically (403/405)
+      // while serving the same URL fine over GET.
+      if (
+        response.status === 405 ||
+        response.status === 501 ||
+        BLOCKED_STATUSES.has(response.status)
+      ) {
         response = await attemptFetch(url, 'GET', timeoutMs)
       }
     } catch {
@@ -41,6 +55,17 @@ export async function checkUrl(url: string, timeoutMs = 8000): Promise<UrlCheckR
 
     if (!isNode && response.type === 'opaque') {
       return {status: 'unverifiable', reason: 'cors'}
+    }
+
+    // A 429 is about the checker's request rate, not the link. Give the host a breather
+    // and try once more before writing the URL off as rate-limited.
+    if (response.status === 429) {
+      await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_RETRY_DELAY_MS))
+      response = await attemptFetch(url, 'GET', timeoutMs)
+    }
+
+    if (BLOCKED_STATUSES.has(response.status)) {
+      return {status: 'unverifiable', httpStatus: response.status, reason: 'blocked'}
     }
 
     if (response.status >= 400) {

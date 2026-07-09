@@ -1,5 +1,6 @@
 /* eslint sort-keys: "error" */
 const resources = {
+  'badge.blocked': 'Blockerad',
   'badge.broken': 'Bruten',
   'badge.dangling-reference': 'Bruten referens',
   'badge.ok': 'OK',
@@ -40,6 +41,9 @@ const resources = {
   'progress.fetching-documents': 'Hämtar dokument',
   'progress.starting': 'Startar',
   'result.finding-subtitle': 'Länk i {{fieldPath}}: {{value}}',
+  'result.occurrences_one': '{{count}} ställe',
+  'result.occurrences_other': '{{count}} ställen',
+  'result.open-link-tooltip': 'Öppna länken i en ny flik',
   'result.resolve': 'Lös',
   'result.resolve-tooltip': 'Lös när du har kontrollerat och åtgärdat länken.',
   'result.unresolve': 'Ångra lösning',
@@ -50,6 +54,8 @@ const resources = {
   'status.bad-gateway': 'Felaktig gateway',
   'status.bad-request': 'Felaktig begäran',
   'status.blocked-by-cors': 'Blockerad av CORS - behöver inte vara bruten',
+  'status.blocked-by-site':
+    'Webbplatsen blockerar automatiska kontroller - länken kan ändå fungera, kontrollera manuellt',
   'status.client-error': 'Klientfel ({{status}})',
   'status.could-not-connect': 'Kunde inte ansluta till servern',
   'status.forbidden': 'Förbjuden',

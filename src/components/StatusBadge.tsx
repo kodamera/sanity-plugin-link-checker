@@ -157,7 +157,9 @@ function describeLinkStatus(
   if (result.status === 'ok') return t('status.responded-successfully')
 
   if (result.status === 'unverifiable') {
-    return result.reason === 'cors' ? t('status.blocked-by-cors') : t('status.status-unconfirmed')
+    if (result.reason === 'cors') return t('status.blocked-by-cors')
+    if (result.reason === 'blocked') return t('status.blocked-by-site')
+    return t('status.status-unconfirmed')
   }
 
   if (result.reason === 'timeout') return t('status.server-did-not-respond')
@@ -180,6 +182,18 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
   }
 
   if (result.status === 'unverifiable') {
+    // Bot walls get a caution badge showing the actual status code (999, 429, ...) - the
+    // code is the interesting part ("why does it say broken when it works?"), and caution
+    // separates "a machine was turned away" from critical "confirmed dead".
+    if (result.reason === 'blocked') {
+      return (
+        <StatusTooltip description={description}>
+          <Badge tone="caution" fontSize={1}>
+            {result.httpStatus ?? t('badge.blocked')}
+          </Badge>
+        </StatusTooltip>
+      )
+    }
     return (
       <StatusTooltip description={description}>
         <Badge tone="default" fontSize={1}>

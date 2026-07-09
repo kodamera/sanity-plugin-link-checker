@@ -139,6 +139,17 @@ describe('runScan', () => {
     )
   })
 
+  it('always excludes sanity.* system types and passes excludeTypes to the docs query', async () => {
+    const client = mockClient([], [])
+
+    await runScan(client, {...config, excludeTypes: ['siteSettings']}, 'cli')
+
+    expect(client.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('!string::startsWith(_type, "sanity.")'),
+      expect.objectContaining({excludeTypes: ['siteSettings']}),
+    )
+  })
+
   it('pins the raw perspective so drafts are always scanned regardless of apiVersion', async () => {
     const docs = [{_id: 'a', _type: 'post'}]
     const client = mockClient(docs, [])

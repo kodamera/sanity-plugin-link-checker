@@ -1,5 +1,6 @@
 /* eslint sort-keys: "error" */
 const resources = {
+  'badge.blocked': 'Blocked',
   'badge.broken': 'Broken',
   'badge.dangling-reference': 'Dangling reference',
   'badge.ok': 'OK',
@@ -40,6 +41,9 @@ const resources = {
   'progress.fetching-documents': 'Fetching documents',
   'progress.starting': 'Starting',
   'result.finding-subtitle': 'Link in {{fieldPath}}: {{value}}',
+  'result.occurrences_one': '{{count}} place',
+  'result.occurrences_other': '{{count}} places',
+  'result.open-link-tooltip': 'Open the link in a new tab',
   'result.resolve': 'Resolve',
   'result.resolve-tooltip': "Resolve if you've checked and fixed the link.",
   'result.unresolve': 'Unresolve',
@@ -50,6 +54,8 @@ const resources = {
   'status.bad-gateway': 'Bad gateway',
   'status.bad-request': 'Bad request',
   'status.blocked-by-cors': 'Blocked by CORS - may not be broken',
+  'status.blocked-by-site':
+    'The site blocks automated checks - the link may still work, verify manually',
   'status.client-error': 'Client error ({{status}})',
   'status.could-not-connect': 'Could not connect to server',
   'status.forbidden': 'Forbidden',
