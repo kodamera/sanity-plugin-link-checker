@@ -36,15 +36,34 @@ export async function readReport(client: SanityClient): Promise<ScanResult | nul
   )
 }
 
-/** Toggles a finding's key (see getFindingKey) in and out of the acknowledged set. */
+/**
+ * Toggles a finding's key (see getFindingKey) in and out of the acknowledged set.
+ *
+ * The add/remove is an atomic array patch rather than rewriting the whole array, so two
+ * editors toggling different keys at the same time both land. The presence check is a
+ * separate read - a true concurrent toggle of the SAME key can still double-apply, which
+ * degrades to a no-op or a visible re-toggle, never data loss.
+ */
 export async function toggleAcknowledged(client: SanityClient, findingKey: string): Promise<void> {
   const existing = await client.fetch<{acknowledgedKeys?: string[]} | null>(
     `*[_id == $id][0]{acknowledgedKeys}`,
     {id: REPORT_DOC_ID},
   )
   const current = existing?.acknowledgedKeys ?? []
-  const next = current.includes(findingKey)
-    ? current.filter((key) => key !== findingKey)
-    : [...current, findingKey]
-  await client.patch(REPORT_DOC_ID).set({acknowledgedKeys: next}).commit()
+  // JSON.stringify produces a double-quoted, escaped literal - keys contain arbitrary
+  // URL characters (quotes, backslashes) and must never be spliced in raw.
+  const keyLiteral = JSON.stringify(findingKey)
+
+  if (current.includes(findingKey)) {
+    await client
+      .patch(REPORT_DOC_ID)
+      .unset([`acknowledgedKeys[@ == ${keyLiteral}]`])
+      .commit()
+  } else {
+    await client
+      .patch(REPORT_DOC_ID)
+      .setIfMissing({acknowledgedKeys: []})
+      .insert('after', 'acknowledgedKeys[-1]', [findingKey])
+      .commit()
+  }
 }
