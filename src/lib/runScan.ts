@@ -119,10 +119,16 @@ export async function runScan(
   source: ScanResult['source'],
   onProgress?: (message: string, done: number, total: number) => void,
 ): Promise<ScanResult> {
-  const docs = await fetchAllDocs(client, onProgress)
+  // Draft scanning depends on the 'raw' perspective. @sanity/client defaults to raw only
+  // for API versions < v2025-02-19 - for newer versions the default is 'published', which
+  // silently excludes drafts (and makes the existence check treat every draft-only target
+  // as broken). Pin it so draft coverage doesn't hinge on which apiVersion a user picked.
+  const rawClient = client.withConfig({perspective: 'raw'})
+
+  const docs = await fetchAllDocs(rawClient, onProgress)
 
   onProgress?.('Checking references', 0, 1)
-  const brokenRefs = await scanInternalRefs(client, docs)
+  const brokenRefs = await scanInternalRefs(rawClient, docs)
 
   const {findings: brokenLinks, urlsChecked} = await scanExternalLinks(
     docs,

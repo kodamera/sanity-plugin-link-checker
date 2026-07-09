@@ -11,9 +11,15 @@ const config: LinkCheckerPluginConfig = {
 // First call: the paginated docs query. Fixtures here are always < PAGE_SIZE, so the page
 // comes back shorter than PAGE_SIZE and the fetch loop in runScan stops after one call.
 // Second call: scanInternalRefs' existence-check query for collected ref ids.
+//
+// runScan pins the perspective via `client.withConfig({perspective: 'raw'})` before issuing
+// any queries, so the mock's `withConfig` must return the same mock (fetch stays reachable
+// on the derived client).
 function mockClient(docs: unknown[], existingIds: string[]): SanityClient {
   const fetch = vi.fn().mockResolvedValueOnce(docs).mockResolvedValueOnce(existingIds)
-  return {fetch} as unknown as SanityClient
+  const client = {fetch, withConfig: vi.fn()} as unknown as SanityClient
+  ;(client.withConfig as ReturnType<typeof vi.fn>).mockReturnValue(client)
+  return client
 }
 
 describe('runScan', () => {
@@ -93,7 +99,8 @@ describe('runScan', () => {
       .mockResolvedValueOnce(page1)
       .mockResolvedValueOnce(page2)
       .mockResolvedValueOnce([])
-    const client = {fetch} as unknown as SanityClient
+    const client = {fetch, withConfig: vi.fn()} as unknown as SanityClient
+    ;(client.withConfig as ReturnType<typeof vi.fn>).mockReturnValue(client)
 
     const result = await runScan(client, config, 'cli')
 
@@ -108,5 +115,14 @@ describe('runScan', () => {
       expect.any(String),
       expect.objectContaining({lastId: page1[page1.length - 1]._id}),
     )
+  })
+
+  it('pins the raw perspective so drafts are always scanned regardless of apiVersion', async () => {
+    const docs = [{_id: 'a', _type: 'post'}]
+    const client = mockClient(docs, [])
+
+    await runScan(client, config, 'cli')
+
+    expect(client.withConfig).toHaveBeenCalledWith({perspective: 'raw'})
   })
 })
