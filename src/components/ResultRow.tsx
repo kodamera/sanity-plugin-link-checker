@@ -73,7 +73,7 @@ function LaunchIcon(): JSX.Element {
   )
 }
 
-function ChevronDownIcon(): JSX.Element {
+function ChevronRightIcon(): JSX.Element {
   return (
     <svg
       viewBox="0 0 25 25"
@@ -84,23 +84,7 @@ function ChevronDownIcon(): JSX.Element {
       strokeWidth="1.2"
       style={{display: 'block'}}
     >
-      <path d="M8 11l4.5 4.5L17 11" />
-    </svg>
-  )
-}
-
-function ChevronUpIcon(): JSX.Element {
-  return (
-    <svg
-      viewBox="0 0 25 25"
-      width="1em"
-      height="1em"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      style={{display: 'block'}}
-    >
-      <path d="M8 14.5L12.5 10L17 14.5" />
+      <path d="M10.5 8l4.5 4.5L10.5 17" />
     </svg>
   )
 }
@@ -429,6 +413,24 @@ export function ResultRow({
             zIndex: 1,
           }}
         />
+        {/* Leading disclosure chevron, the way file trees do it (points right, rotates down
+            when open) - borderless so it reads as a list affordance, not a form control. It
+            leads the row so every row's expandability is visible in one aligned column. */}
+        <Box style={{position: 'relative', zIndex: 2, flexShrink: 0}}>
+          <Button
+            aria-expanded={expanded}
+            aria-label={expanded ? t('result.collapse') : t('result.expand')}
+            icon={ChevronRightIcon}
+            mode="bleed"
+            fontSize={1}
+            padding={2}
+            onClick={handleToggleExpanded}
+            style={{
+              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 120ms ease',
+            }}
+          />
+        </Box>
         <Stack gap={2} flex={1} style={{minWidth: 0, opacity: acknowledged ? 0.5 : 1}}>
           {schemaType && previewDocument ? (
             <Box title={hoverTitle} style={{minWidth: 0}}>
@@ -474,26 +476,13 @@ export function ResultRow({
           {anyActionable && (
             <ResolveButton acknowledged={acknowledged} disabled={leaving} onClick={trigger} />
           )}
-          <Tooltip
-            content={<Text size={1}>{expanded ? t('result.collapse') : t('result.expand')}</Text>}
-            placement="top"
-            portal
-          >
-            <Button
-              aria-expanded={expanded}
-              aria-label={expanded ? t('result.collapse') : t('result.expand')}
-              icon={expanded ? ChevronUpIcon : ChevronDownIcon}
-              mode="ghost"
-              fontSize={1}
-              padding={2}
-              onClick={handleToggleExpanded}
-            />
-          </Tooltip>
           <DocStateDot state={finding.docState} updatedAt={finding.docStateUpdatedAt} />
         </Flex>
       </Flex>
       {expanded && (
-        <Box marginTop={3} paddingLeft={4}>
+        // Indented to start where the header's content column starts (past the chevron),
+        // so the sub-rows read as children of the document line above.
+        <Box marginTop={3} paddingLeft={5}>
           <Stack gap={0}>
             {groups.map((group) => (
               <SubRow
