@@ -1,5 +1,7 @@
 import type {JSX} from 'react'
+import {useTranslation} from 'sanity'
 
+import {linkCheckerLocaleNamespace} from '../i18n'
 import {type BrokenLink, getFindingKey, type ScanFinding} from '../lib/types'
 import {TabbedFindings} from './TabbedFindings'
 
@@ -18,6 +20,7 @@ export function LinkResultsTabs({
   editHref: (finding: ScanFinding) => string
   onOpenEdit: (finding: ScanFinding) => void
 }): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
   const isResolved = (f: BrokenLink) => acknowledgedKeys.has(getFindingKey(f))
   // The status tabs (Broken/Unverifiable/OK) only show what still needs attention - resolved
   // findings move to their own tab regardless of status, as an audit trail.
@@ -29,26 +32,26 @@ export function LinkResultsTabs({
       tabs={[
         {
           key: 'broken',
-          label: 'Broken',
-          emptyMessage: 'No broken links.',
+          label: t('tabs.broken'),
+          emptyMessage: t('empty.broken-links'),
           items: active.filter((f) => f.result.status === 'broken'),
         },
         {
           key: 'unverifiable',
-          label: 'Unverifiable',
-          emptyMessage: 'No unverifiable links.',
+          label: t('tabs.unverifiable'),
+          emptyMessage: t('empty.unverifiable-links'),
           items: active.filter((f) => f.result.status === 'unverifiable'),
         },
         {
           key: 'ok',
-          label: 'OK',
-          emptyMessage: 'No working links checked yet.',
+          label: t('tabs.ok'),
+          emptyMessage: t('empty.working-links'),
           items: active.filter((f) => f.result.status === 'ok'),
         },
         {
           key: 'resolved',
-          label: 'Resolved',
-          emptyMessage: 'Nothing resolved yet.',
+          label: t('tabs.resolved'),
+          emptyMessage: t('empty.resolved'),
           items: findings.filter(isResolved),
         },
       ]}

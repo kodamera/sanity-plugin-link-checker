@@ -1,12 +1,14 @@
 import {Card, Heading, Stack, Text} from '@sanity/ui'
 import type {JSX} from 'react'
+import {useCurrentLocale, useTranslation} from 'sanity'
 
+import {linkCheckerLocaleNamespace} from '../i18n'
 import type {ScanResult} from '../lib/types'
 
-const SOURCE_LABEL: Record<ScanResult['source'], string> = {
-  browser: 'Browser scan',
-  cli: 'CLI',
-  function: 'Sanity Function',
+const SOURCE_LABEL_KEY: Record<ScanResult['source'], string> = {
+  browser: 'summary.source.browser',
+  cli: 'summary.source.cli',
+  function: 'summary.source.function',
 }
 
 // Sanity UI's typed `gridTemplateColumns` prop only accepts numbers (even fractions), not
@@ -47,14 +49,21 @@ export function ScanSummaryCard({
   urlsChecked: number
   linkInstanceCount: number
 }): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
+  const currentLocale = useCurrentLocale()
+  const formattedRanAt = new Intl.DateTimeFormat(currentLocale.id, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(ranAt))
+
   return (
     <Card border radius={2} shadow={0} padding={4} tone={issueCount > 0 ? 'caution' : 'positive'}>
       <Stack gap={4}>
         <Stack gap={2}>
           <Heading size={1}>
             {issueCount === 0
-              ? 'No issues found'
-              : `${issueCount} issue${issueCount === 1 ? '' : 's'} found`}
+              ? t('summary.no-issues')
+              : t('summary.issue-count', {count: issueCount})}
           </Heading>
           {issueBreakdown && (
             <Text size={1} muted>
@@ -91,24 +100,24 @@ export function ScanSummaryCard({
         <div className={GRID_CLASS}>
           <Stack gap={2}>
             <Text size={1} muted>
-              Last scan
+              {t('summary.last-scan')}
             </Text>
-            <Text size={1}>{new Date(ranAt).toLocaleString()}</Text>
+            <Text size={1}>{formattedRanAt}</Text>
           </Stack>
           <Stack gap={2}>
             <Text size={1} muted>
-              Scanned via
+              {t('summary.scanned-via')}
             </Text>
-            <Text size={1}>{SOURCE_LABEL[source]}</Text>
+            <Text size={1}>{t(SOURCE_LABEL_KEY[source])}</Text>
           </Stack>
           {/* Third cell of the meta row on desktop, completing it so grid auto-flow wraps the
               divider (and then the stats) onto their own row instead of into this one. Hidden
               on mobile, where it isn't part of a grid at all. */}
           <div className={`${GRID_CLASS}-spacer`} />
 
-          <StatTile value={documentsScanned} label="Documents scanned" />
-          <StatTile value={urlsChecked} label="Unique URLs" />
-          <StatTile value={linkInstanceCount} label="Link instances" />
+          <StatTile value={documentsScanned} label={t('summary.documents-scanned')} />
+          <StatTile value={urlsChecked} label={t('summary.unique-urls')} />
+          <StatTile value={linkInstanceCount} label={t('summary.link-instances')} />
         </div>
       </Stack>
     </Card>

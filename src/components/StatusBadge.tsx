@@ -1,6 +1,8 @@
 import {Badge, Text, Tooltip} from '@sanity/ui'
 import type {JSX} from 'react'
+import {useTranslation} from 'sanity'
 
+import {linkCheckerLocaleNamespace} from '../i18n'
 import type {DocumentState, UrlCheckResult} from '../lib/types'
 
 // Plain Text as tooltip content, no extra padding/box - Tooltip already supplies its own
@@ -20,19 +22,21 @@ function StatusTooltip({
 }
 
 export function ReferenceStatusBadge(): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
+
   return (
-    <StatusTooltip description="Points to a deleted document">
+    <StatusTooltip description={t('status.points-to-deleted-document')}>
       <Badge tone="critical" fontSize={0}>
-        Dangling reference
+        {t('badge.dangling-reference')}
       </Badge>
     </StatusTooltip>
   )
 }
 
-const DOC_STATE_LABEL: Record<DocumentState, string> = {
-  published: 'Published',
-  draft: 'Draft only',
-  edited: 'Published, edited',
+const DOC_STATE_LABEL_KEY: Record<DocumentState, string> = {
+  draft: 'doc-state.draft',
+  edited: 'doc-state.edited',
+  published: 'doc-state.published',
 }
 
 // Fixed semantic colors (not theme tone tokens) - a status dot reads the same saturated hue
@@ -51,14 +55,17 @@ const DOC_STATE_DOT_COLOR: Record<DocumentState, string> = {
 // directly) so `currentColor` picks it up, matching how Sanity's own icon is colored via a
 // CSS custom property.
 export function DocStateDot({state}: {state?: DocumentState}): JSX.Element | null {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
   if (!state) return null
+  const label = t(DOC_STATE_LABEL_KEY[state])
+
   return (
-    <Tooltip content={<Text size={1}>{DOC_STATE_LABEL[state]}</Text>} placement="top" portal>
+    <Tooltip content={<Text size={1}>{label}</Text>} placement="top" portal>
       {/* The wrapper is the actual hover/focus target (16px) - larger than the icon itself,
           so hitting "near" the dot still triggers the tooltip instead of requiring pixel
           precision. */}
       <span
-        aria-label={DOC_STATE_LABEL[state]}
+        aria-label={label}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -84,48 +91,56 @@ export function DocStateDot({state}: {state?: DocumentState}): JSX.Element | nul
   )
 }
 
-const HTTP_STATUS_DESCRIPTIONS: Record<number, string> = {
-  400: 'Bad request',
-  401: 'Requires login',
-  403: 'Forbidden',
-  404: 'Not found',
-  410: 'Intentionally removed',
-  429: 'Rate-limited',
-  500: 'Internal server error',
-  502: 'Bad gateway',
-  503: 'Service unavailable',
-  504: 'Gateway timeout',
-  520: 'Unknown server error',
+const HTTP_STATUS_DESCRIPTION_KEYS: Record<number, string> = {
+  400: 'status.bad-request',
+  401: 'status.requires-login',
+  403: 'status.forbidden',
+  404: 'status.not-found',
+  410: 'status.intentionally-removed',
+  429: 'status.rate-limited',
+  500: 'status.internal-server-error',
+  502: 'status.bad-gateway',
+  503: 'status.service-unavailable',
+  504: 'status.gateway-timeout',
+  520: 'status.unknown-server-error',
 }
 
-function httpStatusDescription(httpStatus: number | undefined): string {
-  if (!httpStatus) return 'Server error'
-  if (HTTP_STATUS_DESCRIPTIONS[httpStatus]) return HTTP_STATUS_DESCRIPTIONS[httpStatus]
-  if (httpStatus >= 500) return `Server error (${httpStatus})`
-  if (httpStatus >= 400) return `Client error (${httpStatus})`
-  return `Unexpected status ${httpStatus}`
+function httpStatusDescription(
+  httpStatus: number | undefined,
+  t: (key: string, values?: Record<string, number>) => string,
+): string {
+  if (!httpStatus) return t('status.server-error')
+  const key = HTTP_STATUS_DESCRIPTION_KEYS[httpStatus]
+  if (key) return t(key)
+  if (httpStatus >= 500) return t('status.server-error-with-code', {status: httpStatus})
+  if (httpStatus >= 400) return t('status.client-error', {status: httpStatus})
+  return t('status.unexpected-status', {status: httpStatus})
 }
 
-function describeLinkStatus(result: UrlCheckResult): string {
-  if (result.status === 'ok') return 'Responded successfully'
+function describeLinkStatus(
+  result: UrlCheckResult,
+  t: (key: string, values?: Record<string, number>) => string,
+): string {
+  if (result.status === 'ok') return t('status.responded-successfully')
 
   if (result.status === 'unverifiable') {
-    return result.reason === 'cors' ? 'Blocked by CORS - may not be broken' : 'Status unconfirmed'
+    return result.reason === 'cors' ? t('status.blocked-by-cors') : t('status.status-unconfirmed')
   }
 
-  if (result.reason === 'timeout') return "Server didn't respond in time"
-  if (result.reason === 'network') return 'Could not connect to server'
-  return httpStatusDescription(result.httpStatus)
+  if (result.reason === 'timeout') return t('status.server-did-not-respond')
+  if (result.reason === 'network') return t('status.could-not-connect')
+  return httpStatusDescription(result.httpStatus, t)
 }
 
 export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element {
-  const description = describeLinkStatus(result)
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
+  const description = describeLinkStatus(result, t)
 
   if (result.status === 'ok') {
     return (
       <StatusTooltip description={description}>
         <Badge tone="positive" fontSize={1}>
-          {result.httpStatus ?? 'OK'}
+          {result.httpStatus ?? t('badge.ok')}
         </Badge>
       </StatusTooltip>
     )
@@ -135,7 +150,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
     return (
       <StatusTooltip description={description}>
         <Badge tone="default" fontSize={1}>
-          Unverifiable
+          {t('badge.unverifiable')}
         </Badge>
       </StatusTooltip>
     )
@@ -145,7 +160,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
     return (
       <StatusTooltip description={description}>
         <Badge tone="critical" fontSize={1}>
-          Timeout
+          {t('badge.timeout')}
         </Badge>
       </StatusTooltip>
     )
@@ -154,7 +169,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
   return (
     <StatusTooltip description={description}>
       <Badge tone="critical" fontSize={1}>
-        {result.httpStatus ?? 'Broken'}
+        {result.httpStatus ?? t('badge.broken')}
       </Badge>
     </StatusTooltip>
   )

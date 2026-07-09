@@ -1,6 +1,8 @@
 import {Box, Button, Flex, Stack, Text, Tooltip} from '@sanity/ui'
 import {type CSSProperties, type JSX, type MouseEvent, useCallback, useState} from 'react'
+import {useTranslation} from 'sanity'
 
+import {linkCheckerLocaleNamespace} from '../i18n'
 import {describeFieldPath} from '../lib/humanizeFieldPath'
 import {getFindingKey, type ScanFinding} from '../lib/types'
 import {DocStateDot, LinkStatusBadge, ReferenceStatusBadge} from './StatusBadge'
@@ -56,6 +58,7 @@ export function ResultRow({
   /** False for the last row in a list, so no trailing hairline is left dangling below it. */
   showDivider?: boolean
 }): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
   const brokenValue = finding.kind === 'reference' ? finding.refId : finding.href
   const key = getFindingKey(finding)
   const [leaving, setLeaving] = useState(false)
@@ -135,16 +138,14 @@ export function ResultRow({
             <Tooltip
               content={
                 <Text size={1}>
-                  {acknowledged
-                    ? 'Unresolve - move this back to Active.'
-                    : "Resolve if you've checked and fixed the link."}
+                  {acknowledged ? t('result.unresolve-tooltip') : t('result.resolve-tooltip')}
                 </Text>
               }
               placement="top"
               portal
             >
               <Button
-                text={acknowledged ? 'Unresolve' : 'Resolve'}
+                text={acknowledged ? t('result.unresolve') : t('result.resolve')}
                 mode="ghost"
                 fontSize={1}
                 padding={2}

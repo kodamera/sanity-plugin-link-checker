@@ -1,5 +1,6 @@
 import {definePlugin} from 'sanity'
 
+import {linkCheckerLocaleBundles} from './i18n'
 import type {LinkCheckerPluginConfig} from './lib/types'
 import {linkCheckerTool} from './LinkCheckerTool'
 
@@ -28,6 +29,9 @@ export type {UrlCheckResult} from './lib/types'
 export const linkChecker = definePlugin<LinkCheckerPluginConfig | void>((config) => {
   const resolvedConfig: LinkCheckerPluginConfig = config ?? {}
   return {
+    i18n: {
+      bundles: linkCheckerLocaleBundles,
+    },
     name: 'sanity-plugin-link-checker',
     tools: (prev) => [...prev, linkCheckerTool(resolvedConfig)],
   }

@@ -1,8 +1,9 @@
 import {Box, Button, Card, Container, Flex, Heading, Stack, Text} from '@sanity/ui'
-import {type JSX, useCallback, useEffect, useMemo, useRef, useState} from 'react'
-import {useClient, useWorkspace} from 'sanity'
+import {type JSX, type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {Translate, useClient, useTranslation, useWorkspace} from 'sanity'
 import {useRouter} from 'sanity/router'
 
+import {linkCheckerLocaleNamespace} from '../i18n'
 import {loadCachedResult, saveCachedResult} from '../lib/cache'
 import {buildEditPath} from '../lib/editRoute'
 import {readReport, REPORT_DOC_ID, toggleAcknowledged, writeReport} from '../lib/reportDocument'
@@ -28,7 +29,16 @@ import {TabbedFindings} from './TabbedFindings'
 const API_VERSION = '2024-01-01'
 const AWAIT_FUNCTION_TIMEOUT_MS = 90_000
 
+function DatasetName({children}: {children?: ReactNode}): JSX.Element {
+  return (
+    <strong>
+      <i>{children}</i>
+    </strong>
+  )
+}
+
 export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
   const config = useMemo(() => props.config ?? {}, [props.config])
   const client = useClient({apiVersion: config.apiVersion ?? API_VERSION})
   const {projectId, dataset} = client.config()
@@ -208,7 +218,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   // category active it would just repeat the heading's count in different words.
   const issueBreakdown =
     activeBrokenRefs.length > 0 && activeBrokenLinks.length > 0
-      ? `${activeBrokenRefs.length} broken reference${activeBrokenRefs.length === 1 ? '' : 's'} · ${activeBrokenLinks.length} broken link${activeBrokenLinks.length === 1 ? '' : 's'}`
+      ? `${t('findings.broken-references', {count: activeBrokenRefs.length})} · ${t('findings.broken-links', {count: activeBrokenLinks.length})}`
       : null
   // Hold external-link display while a Function may be about to replace them: only a
   // browser-sourced result is provisional, and only when no custom checkUrl is configured
@@ -220,6 +230,16 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
     !config.checkUrl &&
     unverifiableCount > 0 &&
     !holdingExternalLinks
+  const translateProgressMessage = useCallback(
+    (message: string) => {
+      if (message === 'Starting') return t('progress.starting')
+      if (message === 'Fetching documents') return t('progress.fetching-documents')
+      if (message === 'Checking references') return t('progress.checking-references')
+      if (message === 'Checking external links') return t('progress.checking-external-links')
+      return message
+    },
+    [t],
+  )
 
   return (
     <Container
@@ -240,25 +260,26 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
         <Flex direction={['column', 'column', 'row']} justify="space-between" gap={4}>
           <Stack gap={4} style={{minWidth: 0}}>
             <Stack gap={3}>
-              <Heading size={[2, 2, 3]}>Link Checker</Heading>
+              <Heading size={[2, 2, 3]}>{t('tool.title')}</Heading>
               {dataset && (
                 <Text size={1} muted>
-                  Checks against{' '}
-                  <strong>
-                    <i>{dataset}</i>
-                  </strong>{' '}
-                  dataset
+                  <Translate
+                    t={t}
+                    i18nKey="scan.dataset-note"
+                    values={{dataset}}
+                    components={{Strong: DatasetName}}
+                  />
                 </Text>
               )}
             </Stack>
             {!result && (
               <Text size={1} muted>
-                No scan has been run yet.
+                {t('empty.no-scan')}
               </Text>
             )}
           </Stack>
           <Button
-            text={scanning ? 'Scanning…' : 'Run scan'}
+            text={scanning ? t('scan.running-button') : t('scan.run-button')}
             tone="primary"
             disabled={scanning}
             onClick={handleRunScan}
@@ -279,7 +300,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
 
         {scanning && progress && (
           <ScanProgressBanner
-            message={progress.message}
+            message={translateProgressMessage(progress.message)}
             done={progress.done}
             total={progress.total}
           />
@@ -291,16 +312,16 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
 
         {result && issueCount === 0 && !holdingExternalLinks && (
           <Card padding={4} radius={2} shadow={0} tone="positive">
-            <Text>No broken links or references found.</Text>
+            <Text>{t('findings.all-clear')}</Text>
           </Card>
         )}
 
         {brokenRefs.length > 0 && (
           <Stack gap={4}>
             <Stack gap={2}>
-              <Heading size={1}>Broken references</Heading>
+              <Heading size={1}>{t('findings.broken-references.title')}</Heading>
               <Text size={1} muted>
-                Documents that reference another document that no longer exists.
+                {t('findings.broken-references.description')}
               </Text>
             </Stack>
             <TabbedFindings
@@ -308,14 +329,14 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
               tabs={[
                 {
                   key: 'active',
-                  label: 'Active',
-                  emptyMessage: 'No active broken references.',
+                  label: t('tabs.active'),
+                  emptyMessage: t('empty.active-broken-references'),
                   items: activeBrokenRefs,
                 },
                 {
                   key: 'resolved',
-                  label: 'Resolved',
-                  emptyMessage: 'Nothing resolved yet.',
+                  label: t('tabs.resolved'),
+                  emptyMessage: t('empty.resolved'),
                   items: resolvedBrokenRefs,
                 },
               ]}
@@ -331,9 +352,9 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
         {(linkFindings.length > 0 || holdingExternalLinks) && (
           <Stack gap={4}>
             <Stack gap={3}>
-              <Heading size={1}>External links</Heading>
+              <Heading size={1}>{t('findings.external-links.title')}</Heading>
               <Text size={1} muted>
-                Links to other websites found in your content, checked to see if they still work.
+                {t('findings.external-links.description')}
               </Text>
             </Stack>
             {holdingExternalLinks ? (
