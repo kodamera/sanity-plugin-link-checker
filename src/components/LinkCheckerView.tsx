@@ -20,6 +20,7 @@ import {LinkResultsTabs} from './LinkResultsTabs'
 import {
   AwaitingFunctionBanner,
   CorsBanner,
+  PreviousResultsBanner,
   ScanProgressBanner,
   VerifyingLinksPlaceholder,
 } from './ScanStatusBanners'
@@ -232,6 +233,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
     !config.checkUrl &&
     unverifiableCount > 0 &&
     !holdingExternalLinks
+  const showingPreviousResults = scanning && Boolean(result)
   const translateProgressMessage = useCallback(
     (message: string) => {
       if (message === 'Starting') return t('progress.starting')
@@ -288,18 +290,6 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
           />
         </Flex>
 
-        {result && (
-          <ScanSummaryCard
-            issueCount={issueCount}
-            issueBreakdown={issueBreakdown}
-            ranAt={result.ranAt}
-            source={result.source}
-            documentsScanned={result.documentsScanned}
-            urlsChecked={result.urlsChecked}
-            linkInstanceCount={linkFindings.length}
-          />
-        )}
-
         {scanning && progress && (
           <ScanProgressBanner
             message={translateProgressMessage(progress.message)}
@@ -308,71 +298,97 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
           />
         )}
 
-        {!scanning && awaitingFunction && !holdingExternalLinks && <AwaitingFunctionBanner />}
+        {showingPreviousResults && <PreviousResultsBanner />}
 
-        {showCorsBanner && <CorsBanner onDismiss={handleDismissBanner} />}
-
-        {result && issueCount === 0 && !holdingExternalLinks && (
-          <Card padding={4} radius={2} shadow={0} tone="positive">
-            <Text>{t('findings.all-clear')}</Text>
-          </Card>
-        )}
-
-        {brokenRefs.length > 0 && (
-          <Stack gap={4}>
-            <Stack gap={2}>
-              <Heading size={1}>{t('findings.broken-references.title')}</Heading>
-              <Text size={1} muted>
-                {t('findings.broken-references.description')}
-              </Text>
-            </Stack>
-            <TabbedFindings
-              idPrefix="broken-refs"
-              tabs={[
-                {
-                  key: 'active',
-                  label: t('tabs.active'),
-                  emptyMessage: t('empty.active-broken-references'),
-                  items: activeBrokenRefs,
-                },
-                {
-                  key: 'resolved',
-                  label: t('tabs.resolved'),
-                  emptyMessage: t('empty.resolved'),
-                  items: resolvedBrokenRefs,
-                },
-              ]}
-              previewDocuments={previewDocuments}
-              acknowledgedKeys={acknowledgedKeys}
-              onToggleAcknowledged={handleToggleAcknowledged}
-              onOpenEdit={handleOpenEdit}
-              editHref={editHref}
-            />
-          </Stack>
-        )}
-
-        {(linkFindings.length > 0 || holdingExternalLinks) && (
-          <Stack gap={4}>
-            <Stack gap={3}>
-              <Heading size={1}>{t('findings.external-links.title')}</Heading>
-              <Text size={1} muted>
-                {t('findings.external-links.description')}
-              </Text>
-            </Stack>
-            {holdingExternalLinks ? (
-              <VerifyingLinksPlaceholder />
-            ) : (
-              <LinkResultsTabs
-                findings={linkFindings}
-                previewDocuments={previewDocuments}
-                acknowledgedKeys={acknowledgedKeys}
-                onToggleAcknowledged={handleToggleAcknowledged}
-                editHref={editHref}
-                onOpenEdit={handleOpenEdit}
+        <Box
+          aria-busy={showingPreviousResults || undefined}
+          inert={showingPreviousResults || undefined}
+          style={
+            showingPreviousResults
+              ? {opacity: 0.6, pointerEvents: 'none', transition: 'opacity 120ms ease'}
+              : undefined
+          }
+        >
+          <Stack gap={[4, 4, 5]}>
+            {result && (
+              <ScanSummaryCard
+                issueCount={issueCount}
+                issueBreakdown={issueBreakdown}
+                ranAt={result.ranAt}
+                source={result.source}
+                documentsScanned={result.documentsScanned}
+                urlsChecked={result.urlsChecked}
+                linkInstanceCount={linkFindings.length}
               />
             )}
+
+            {!scanning && awaitingFunction && !holdingExternalLinks && <AwaitingFunctionBanner />}
+
+            {showCorsBanner && <CorsBanner onDismiss={handleDismissBanner} />}
+
+            {result && issueCount === 0 && !holdingExternalLinks && (
+              <Card padding={4} radius={2} shadow={0} tone="positive">
+                <Text>{t('findings.all-clear')}</Text>
+              </Card>
+            )}
+
+            {brokenRefs.length > 0 && (
+              <Stack gap={4}>
+                <Stack gap={2}>
+                  <Heading size={1}>{t('findings.broken-references.title')}</Heading>
+                  <Text size={1} muted>
+                    {t('findings.broken-references.description')}
+                  </Text>
+                </Stack>
+                <TabbedFindings
+                  idPrefix="broken-refs"
+                  tabs={[
+                    {
+                      key: 'active',
+                      label: t('tabs.active'),
+                      emptyMessage: t('empty.active-broken-references'),
+                      items: activeBrokenRefs,
+                    },
+                    {
+                      key: 'resolved',
+                      label: t('tabs.resolved'),
+                      emptyMessage: t('empty.resolved'),
+                      items: resolvedBrokenRefs,
+                    },
+                  ]}
+                  previewDocuments={previewDocuments}
+                  acknowledgedKeys={acknowledgedKeys}
+                  onToggleAcknowledged={handleToggleAcknowledged}
+                  onOpenEdit={handleOpenEdit}
+                  editHref={editHref}
+                />
+              </Stack>
+            )}
+
+            {(linkFindings.length > 0 || holdingExternalLinks) && (
+              <Stack gap={4}>
+                <Stack gap={3}>
+                  <Heading size={1}>{t('findings.external-links.title')}</Heading>
+                  <Text size={1} muted>
+                    {t('findings.external-links.description')}
+                  </Text>
+                </Stack>
+                {holdingExternalLinks ? (
+                  <VerifyingLinksPlaceholder />
+                ) : (
+                  <LinkResultsTabs
+                    findings={linkFindings}
+                    previewDocuments={previewDocuments}
+                    acknowledgedKeys={acknowledgedKeys}
+                    onToggleAcknowledged={handleToggleAcknowledged}
+                    editHref={editHref}
+                    onOpenEdit={handleOpenEdit}
+                  />
+                )}
+              </Stack>
+            )}
           </Stack>
-        )}
+        </Box>
 
         <Box />
       </Stack>

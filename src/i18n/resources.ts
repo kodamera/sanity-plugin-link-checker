@@ -10,6 +10,7 @@ const resources = {
   'banner.cors':
     'Running without a custom <Code>checkUrl</Code>: most "Unverifiable" results below are the browser blocking cross-origin status reads (CORS), not necessarily dead links. For accurate results, deploy a Document Function (<Command>npx sanity-plugin-link-checker init-function</Command>) so "Run scan" triggers one automatically, or run <Cli>npx sanity-plugin-link-checker</Cli> by hand - see the plugin README.',
   'banner.dismiss': 'Dismiss',
+  'banner.previous-results': 'Showing previous scan results - new scan in progress.',
   'banner.verifying-links':
     'Verifying external links server-side... results appear here when the check completes (up to ~90 seconds).',
   'doc-state.draft': 'Draft only',
