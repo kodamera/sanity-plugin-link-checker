@@ -111,6 +111,23 @@ codes) and the results replace the browser-run ones live, within a few seconds â
 reload, no CLI to remember. Functions run on Sanity's included free tier for typical
 link-checking volumes (20K GB-seconds + 500K invocations/month, included on all plans).
 
+### Upgrading an already-deployed Function
+
+The scaffolded Function occasionally changes as the plugin evolves â€” most notably,
+Functions scaffolded before the scan-scope config existed call
+`runScan(client, {}, 'function')` and silently ignore every option you set in
+`linkChecker({...})` (the browser pass filters correctly, then the Function
+overwrites the report unfiltered). After upgrading the plugin, refresh your
+Function:
+
+```sh
+npx sanity-plugin-link-checker init-function --force
+npx sanity blueprints deploy
+```
+
+`--force` overwrites `functions/link-checker-scan/index.ts` with the current
+template. If you customized the file, diff it first and port your changes.
+
 ## CLI (CI pipelines and no-Function setups)
 
 If you can't or don't want to deploy the Function, the same accurate Node-side scan is
