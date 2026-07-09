@@ -4,10 +4,20 @@
   "description": "Scans a Sanity dataset for dangling document references and dead external links, with a Studio tool to review and jump to the offending documents.",
   "keywords": [
     "sanity",
-    "sanity-plugin"
+    "sanity-plugin",
+    "sanity-studio",
+    "link-checker",
+    "broken-links",
+    "dead-links",
+    "dangling-references",
+    "content-quality",
+    "seo"
   ],
   "license": "MIT",
-  "author": "Kodamera",
+  "author": {
+    "name": "Kodamera",
+    "url": "https://www.kodamera.se"
+  },
   "contributors": [
     "Henrik Larsson"
   ],
