@@ -15,6 +15,7 @@ export function LinkResultsTabs({
   editHref,
   onOpenEdit,
   onOpenDetails,
+  okFindingsTruncated,
 }: {
   findings: BrokenLink[]
   previewDocuments: Map<string, PreviewDocumentValue>
@@ -24,6 +25,10 @@ export function LinkResultsTabs({
   editHref: (finding: ScanFinding) => string
   onOpenEdit: (finding: ScanFinding) => void
   onOpenDetails: (docId: string) => void
+  /** Count of `ok` findings dropped from the stored report - see ScanResult.okFindingsTruncated.
+   * Surfaced as a suffix on the OK tab's label rather than a panel note, so it's visible
+   * without touching TabbedFindings' rendering. */
+  okFindingsTruncated?: number
 }): JSX.Element {
   const {t} = useTranslation(linkCheckerLocaleNamespace)
   const isResolved = (f: BrokenLink) => acknowledgedKeys.has(getFindingKey(f))
@@ -49,7 +54,9 @@ export function LinkResultsTabs({
         },
         {
           key: 'ok',
-          label: t('tabs.ok'),
+          // Suffixed with the truncated count (if any) rather than shown as a separate note -
+          // TabbedFindings only renders `label`, and this keeps that shared component untouched.
+          label: okFindingsTruncated ? `${t('tabs.ok')} (+${okFindingsTruncated})` : t('tabs.ok'),
           emptyMessage: t('empty.working-links'),
           items: active.filter((f) => f.result.status === 'ok'),
         },

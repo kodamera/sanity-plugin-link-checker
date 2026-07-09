@@ -104,4 +104,8 @@ export interface ScanResult {
   /** Keys (see getFindingKey) of findings a user has marked reviewed/fixed - carried forward
    * across scans by writeReport, so re-scanning doesn't keep re-surfacing them. */
   acknowledgedKeys?: string[]
+  /** Number of `ok` link findings dropped from `findings` to keep the stored report
+   * within Sanity document / localStorage size limits. Problem findings are never
+   * dropped. 0 or absent = nothing was dropped. */
+  okFindingsTruncated?: number
 }
