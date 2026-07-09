@@ -6,6 +6,7 @@ import {useRouter} from 'sanity/router'
 import {linkCheckerLocaleNamespace} from '../i18n'
 import {loadCachedResult, saveCachedResult} from '../lib/cache'
 import {buildEditPath} from '../lib/editRoute'
+import {groupDocFindings} from '../lib/groupDocFindings'
 import {readReport, REPORT_DOC_ID, toggleAcknowledged, writeReport} from '../lib/reportDocument'
 import {type PreviewDocumentValue, resolvePreviewDocuments} from '../lib/resolvePreviewDocuments'
 import {runScan} from '../lib/runScan'
@@ -18,7 +19,6 @@ import {
 } from '../lib/types'
 import {DocumentDialog} from './DocumentDialog'
 import {LinkResultsTabs} from './LinkResultsTabs'
-import {type FindingGroup} from './ResultRow'
 import {
   AwaitingFunctionBanner,
   CorsBanner,
@@ -52,27 +52,6 @@ function summarizeHeadline(
     distinctBrokenRefs > 0 ? t('findings.broken-references', {count: distinctBrokenRefs}) : null,
   ].filter(Boolean)
   return {issueCount, issueBreakdown: breakdownParts.length > 0 ? breakdownParts.join(' · ') : null}
-}
-
-/**
- * The inspected document's findings for the Details dialog: every distinct URL/reference
- * with a problem (broken/unverifiable links and dangling references; working links are
- * noise here), grouped exactly like the list rows group them.
- */
-function groupDocFindings(findings: ScanFinding[], docId: string): FindingGroup[] {
-  const groups = new Map<string, FindingGroup>()
-  for (const finding of findings) {
-    if (finding.fromId !== docId) continue
-    if (finding.kind === 'link' && finding.result.status === 'ok') continue
-    const identity = finding.kind === 'reference' ? finding.refId : finding.href
-    const group = groups.get(identity)
-    if (group) {
-      group.keys.push(getFindingKey(finding))
-    } else {
-      groups.set(identity, {finding, keys: [getFindingKey(finding)]})
-    }
-  }
-  return Array.from(groups.values())
 }
 
 function DatasetName({children}: {children?: ReactNode}): JSX.Element {
