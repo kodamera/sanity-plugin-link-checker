@@ -14,10 +14,17 @@ accurate external-link results too.
 ![Screenshot of the Link Checker tool](assets/screenshot.png)
 <!-- TODO(operator): capture Studio screenshot, ~1200px wide, light theme -->
 
-## What it checks
+## Features
 
-- **Dangling internal references** — reference fields (`{_type: 'reference', _ref}`) pointing at a document that no longer exists (checked against both published and draft).
-- **Broken external links** — `href` values found on Portable Text link annotations, checked over HTTP.
+- **Finds broken external links** — every `href` in your Portable Text content, checked over HTTP with real status codes (via the included Document Function or CLI).
+- **Finds dangling references** — reference fields pointing at documents that no longer exist, checked against both published and draft versions.
+- **Scans everything** — published documents, drafts, and release versions across the entire dataset.
+- **Jump straight to the problem** — click any finding to open the document with the offending field focused and scrolled into view.
+- **One shared report** — results are stored in the dataset itself, so every teammate and environment sees the same scan, live, with no manual steps.
+- **Mark as resolved** — acknowledge findings you've handled; the marks survive re-scans.
+- **CI-ready CLI** — fail a build when broken links are found, export the report as JSON.
+- **Zero schema pollution** — the report document is not a registered schema type and never shows up in your content lists.
+- **Extensible** — plug in your own URL checker (e.g. a proxy), or use the React-free scanning core in your own scripts and Functions.
 
 ## Installation
 
