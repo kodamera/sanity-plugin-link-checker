@@ -31,6 +31,10 @@ Options:
                         always-skipped "sanity.*" system types (e.g. "siteSettings,redirect")
   --exclude-urls <s>    Comma-separated URL substrings to skip when checking external
                         links (e.g. "linkedin.com" for hosts that block automated checks)
+  --exclude-url-pattern <re>
+                        Regular expression tested against each full URL; repeat
+                        the flag for multiple patterns (e.g.
+                        --exclude-url-pattern "twitter\\.com/\\w+")
   --ignore-drafts-older-than <days>
                         Skip never-published drafts whose last edit is older than this
                         many days (abandoned drafts); drafts of published docs always scan
@@ -56,6 +60,7 @@ export async function runScanCommand(argv: string[]): Promise<void> {
       'host-delay': {type: 'string'},
       'exclude-types': {type: 'string'},
       'exclude-urls': {type: 'string'},
+      'exclude-url-pattern': {type: 'string', multiple: true},
       'ignore-drafts-older-than': {type: 'string'},
       'fail-on-findings': {type: 'boolean', default: false},
       help: {type: 'boolean', default: false},
@@ -84,6 +89,17 @@ export async function runScanCommand(argv: string[]): Promise<void> {
     return
   }
 
+  const excludeUrlPatterns: RegExp[] = []
+  for (const source of values['exclude-url-pattern'] ?? []) {
+    try {
+      excludeUrlPatterns.push(new RegExp(source))
+    } catch {
+      console.error(`Invalid --exclude-url-pattern: ${source}`)
+      process.exitCode = 1
+      return
+    }
+  }
+
   const client = createClient({projectId, dataset, token, apiVersion, useCdn: false})
 
   const result = await runScan(
@@ -96,10 +112,13 @@ export async function runScanCommand(argv: string[]): Promise<void> {
         ?.split(',')
         .map((t) => t.trim())
         .filter(Boolean),
-      excludeUrls: values['exclude-urls']
-        ?.split(',')
-        .map((u) => u.trim())
-        .filter(Boolean),
+      excludeUrls: [
+        ...(values['exclude-urls']
+          ?.split(',')
+          .map((u) => u.trim())
+          .filter(Boolean) ?? []),
+        ...excludeUrlPatterns,
+      ],
       ignoreDraftsOlderThanDays: values['ignore-drafts-older-than']
         ? Number(values['ignore-drafts-older-than'])
         : undefined,

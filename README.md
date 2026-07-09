@@ -135,7 +135,7 @@ found, and `--out <path>` for a local JSON copy in CI logs:
 npx sanity-plugin-link-checker --token $SANITY_AUTH_TOKEN --fail-on-findings --out report.json
 ```
 
-Run `npx sanity-plugin-link-checker --help` for all options (`--concurrency`, `--timeout`, `--host-delay`, `--exclude-types`, `--exclude-urls`, `--api-version`).
+Run `npx sanity-plugin-link-checker --help` for all options (`--concurrency`, `--timeout`, `--host-delay`, `--exclude-types`, `--exclude-urls`, `--exclude-url-pattern`, `--api-version`).
 
 ## Configuration
 
