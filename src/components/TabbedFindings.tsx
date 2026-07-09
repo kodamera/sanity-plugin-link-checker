@@ -3,7 +3,7 @@ import {type JSX, useMemo, useState} from 'react'
 
 import type {PreviewDocumentValue} from '../lib/resolvePreviewDocuments'
 import {getFindingKey, type ScanFinding} from '../lib/types'
-import {ResultRow} from './ResultRow'
+import {type FindingGroup, ResultRow} from './ResultRow'
 
 export interface FindingTabDef<T extends ScanFinding> {
   key: string
@@ -12,30 +12,34 @@ export interface FindingTabDef<T extends ScanFinding> {
   items: T[]
 }
 
-interface FindingGroup<T extends ScanFinding> {
-  finding: T
-  keys: string[]
+interface DocumentGroup {
+  docId: string
+  groups: FindingGroup[]
 }
 
 /**
- * Collapses occurrences of the same URL/reference within the same document into one row -
- * a page linking to the same dead URL from four blocks is one problem to fix, not four
- * list entries. Each group keeps every member's finding key so resolving the row resolves
- * all of them; the first occurrence's focus path is what the row links to.
+ * Two-level grouping: one entry per document, and inside it one group per distinct
+ * URL/reference (a group carries every finding key for that value, since the same value
+ * can occur at several field paths). Editors work through documents to fix, not finding
+ * instances - the tab counts and list length both track problem documents.
  */
-function groupFindings<T extends ScanFinding>(items: T[]): FindingGroup<T>[] {
-  const groups = new Map<string, FindingGroup<T>>()
+function groupByDocument(items: ScanFinding[]): DocumentGroup[] {
+  const docs = new Map<string, Map<string, FindingGroup>>()
   for (const finding of items) {
     const identity = finding.kind === 'reference' ? finding.refId : finding.href
-    const groupKey = `${finding.kind}:${finding.fromId}:${identity}`
-    const group = groups.get(groupKey)
+    const byIdentity = docs.get(finding.fromId) ?? new Map<string, FindingGroup>()
+    if (!docs.has(finding.fromId)) docs.set(finding.fromId, byIdentity)
+    const group = byIdentity.get(identity)
     if (group) {
       group.keys.push(getFindingKey(finding))
     } else {
-      groups.set(groupKey, {finding, keys: [getFindingKey(finding)]})
+      byIdentity.set(identity, {finding, keys: [getFindingKey(finding)]})
     }
   }
-  return Array.from(groups.values())
+  return Array.from(docs.entries()).map(([docId, byIdentity]) => ({
+    docId,
+    groups: Array.from(byIdentity.values()),
+  }))
 }
 
 /**
@@ -63,7 +67,7 @@ export function TabbedFindings<T extends ScanFinding>({
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.key)
 
   const groupedTabs = useMemo(
-    () => tabs.map((tab) => ({...tab, groups: groupFindings(tab.items)})),
+    () => tabs.map((tab) => ({...tab, docGroups: groupByDocument(tab.items)})),
     [tabs],
   )
 
@@ -90,7 +94,7 @@ export function TabbedFindings<T extends ScanFinding>({
                 key={t.key}
                 aria-controls={`${idPrefix}-panel-${t.key}`}
                 id={`${idPrefix}-tab-${t.key}`}
-                label={`${t.label} (${t.groups.length})`}
+                label={`${t.label} (${t.docGroups.length})`}
                 onClick={handleClick}
                 selected={activeTab.key === t.key}
               />
@@ -107,7 +111,7 @@ export function TabbedFindings<T extends ScanFinding>({
         id={`${idPrefix}-panel-${activeTab.key}`}
         style={{minHeight: 160}}
       >
-        {activeTab.groups.length === 0 && (
+        {activeTab.docGroups.length === 0 && (
           // Same padding as a row's own top inset, so the empty message's text sits at the
           // exact spot a row's title would - switching tabs doesn't jump the content start.
           <Box paddingY={4} paddingX={1}>
@@ -117,26 +121,18 @@ export function TabbedFindings<T extends ScanFinding>({
           </Box>
         )}
         <Stack gap={0} marginTop={2}>
-          {activeTab.groups.map(({finding, keys}, index) => {
-            const allAcknowledged = keys.every((k) => acknowledgedKeys.has(k))
-            return (
-              <ResultRow
-                key={keys[0]}
-                finding={finding}
-                // Resolving a partially-resolved group (possible with pre-grouping report
-                // data) only flips the still-unresolved members - toggling every key would
-                // invert the mixed state instead of settling it.
-                findingKeys={allAcknowledged ? keys : keys.filter((k) => !acknowledgedKeys.has(k))}
-                occurrenceCount={keys.length}
-                previewDocument={previewDocuments.get(finding.fromId)}
-                acknowledged={allAcknowledged}
-                onToggleAcknowledged={onToggleAcknowledged}
-                editHref={editHref(finding)}
-                onOpenEdit={onOpenEdit}
-                showDivider={index < activeTab.groups.length - 1}
-              />
-            )
-          })}
+          {activeTab.docGroups.map(({docId, groups}, index) => (
+            <ResultRow
+              key={docId}
+              groups={groups}
+              previewDocument={previewDocuments.get(docId)}
+              acknowledgedKeys={acknowledgedKeys}
+              onToggleAcknowledged={onToggleAcknowledged}
+              editHref={editHref}
+              onOpenEdit={onOpenEdit}
+              showDivider={index < activeTab.docGroups.length - 1}
+            />
+          ))}
         </Stack>
       </TabPanel>
     </Stack>
