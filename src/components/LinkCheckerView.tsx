@@ -16,7 +16,12 @@ import {
   type ScanResult,
 } from '../lib/types'
 import {LinkResultsTabs} from './LinkResultsTabs'
-import {AwaitingFunctionBanner, CorsBanner, ScanProgressBanner} from './ScanStatusBanners'
+import {
+  AwaitingFunctionBanner,
+  CorsBanner,
+  ScanProgressBanner,
+  VerifyingLinksPlaceholder,
+} from './ScanStatusBanners'
 import {ScanSummaryCard} from './ScanSummaryCard'
 import {TabbedFindings} from './TabbedFindings'
 
@@ -205,8 +210,16 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
     activeBrokenRefs.length > 0 && activeBrokenLinks.length > 0
       ? `${activeBrokenRefs.length} broken reference${activeBrokenRefs.length === 1 ? '' : 's'} · ${activeBrokenLinks.length} broken link${activeBrokenLinks.length === 1 ? '' : 's'}`
       : null
+  // Hold external-link display while a Function may be about to replace them: only a
+  // browser-sourced result is provisional, and only when no custom checkUrl is configured
+  // (a proxy-backed browser scan IS accurate and should show immediately).
+  const holdingExternalLinks = awaitingFunction && result?.source === 'browser' && !config.checkUrl
   const showCorsBanner =
-    !bannerDismissed && result?.source === 'browser' && !config.checkUrl && unverifiableCount > 0
+    !bannerDismissed &&
+    result?.source === 'browser' &&
+    !config.checkUrl &&
+    unverifiableCount > 0 &&
+    !holdingExternalLinks
 
   return (
     <Container
@@ -272,11 +285,11 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
           />
         )}
 
-        {!scanning && awaitingFunction && <AwaitingFunctionBanner />}
+        {!scanning && awaitingFunction && !holdingExternalLinks && <AwaitingFunctionBanner />}
 
         {showCorsBanner && <CorsBanner onDismiss={handleDismissBanner} />}
 
-        {result && issueCount === 0 && (
+        {result && issueCount === 0 && !holdingExternalLinks && (
           <Card padding={4} radius={2} shadow={0} tone="positive">
             <Text>No broken links or references found.</Text>
           </Card>
@@ -315,7 +328,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
           </Stack>
         )}
 
-        {linkFindings.length > 0 && (
+        {(linkFindings.length > 0 || holdingExternalLinks) && (
           <Stack gap={4}>
             <Stack gap={3}>
               <Heading size={1}>External links</Heading>
@@ -323,14 +336,18 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                 Links to other websites found in your content, checked to see if they still work.
               </Text>
             </Stack>
-            <LinkResultsTabs
-              findings={linkFindings}
-              titles={titles}
-              acknowledgedKeys={acknowledgedKeys}
-              onToggleAcknowledged={handleToggleAcknowledged}
-              editHref={editHref}
-              onOpenEdit={handleOpenEdit}
-            />
+            {holdingExternalLinks ? (
+              <VerifyingLinksPlaceholder />
+            ) : (
+              <LinkResultsTabs
+                findings={linkFindings}
+                titles={titles}
+                acknowledgedKeys={acknowledgedKeys}
+                onToggleAcknowledged={handleToggleAcknowledged}
+                editHref={editHref}
+                onOpenEdit={handleOpenEdit}
+              />
+            )}
           </Stack>
         )}
 
