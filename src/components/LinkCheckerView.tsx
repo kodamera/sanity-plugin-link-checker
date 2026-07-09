@@ -128,9 +128,14 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   const [result, setResult] = useState<ScanResult | null>(() =>
     projectId && dataset ? loadCachedResult(projectId, dataset) : null,
   )
-  const [previewDocuments, setPreviewDocuments] = useState<Map<string, PreviewDocumentValue>>(
-    new Map(),
-  )
+  // Tagged with the scan it belongs to so "still loading" is derived (previews lag the
+  // current result) instead of stored - rows render native skeletons until the batch
+  // lands rather than flashing the raw type/id fallback and reflowing.
+  const [previews, setPreviews] = useState<{
+    forRanAt: string | null
+    docs: Map<string, PreviewDocumentValue>
+  }>({forRanAt: null, docs: new Map()})
+  const previewDocuments = previews.docs
   const [scanning, setScanning] = useState(false)
   const [progress, setProgress] = useState<{message: string; done: number; total: number} | null>(
     null,
@@ -190,10 +195,18 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   }, [client])
 
   useEffect(() => {
-    if (!result) return
+    if (!result) return undefined
+    let cancelled = false
     const ids = Array.from(new Set(result.findings.map((f) => f.fromId)))
-    resolvePreviewDocuments(client, ids).then(setPreviewDocuments)
+    resolvePreviewDocuments(client, ids).then((docs) => {
+      if (!cancelled) setPreviews({forRanAt: result.ranAt, docs})
+    })
+    return () => {
+      cancelled = true
+    }
   }, [result, client])
+
+  const previewsLoading = Boolean(result) && previews.forRanAt !== result?.ranAt
 
   const handleRunScan = useCallback(async () => {
     setScanning(true)
@@ -416,6 +429,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                     },
                   ]}
                   previewDocuments={previewDocuments}
+                  previewsLoading={previewsLoading}
                   acknowledgedKeys={acknowledgedKeys}
                   onToggleAcknowledged={handleToggleAcknowledged}
                   onOpenEdit={handleOpenEdit}
@@ -439,6 +453,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                   <LinkResultsTabs
                     findings={linkFindings}
                     previewDocuments={previewDocuments}
+                    previewsLoading={previewsLoading}
                     acknowledgedKeys={acknowledgedKeys}
                     onToggleAcknowledged={handleToggleAcknowledged}
                     editHref={editHref}

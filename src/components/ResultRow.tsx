@@ -249,6 +249,7 @@ export function makeEditClickHandler(
 export function ResultRow({
   groups,
   previewDocument,
+  previewLoading = false,
   acknowledgedKeys,
   onToggleAcknowledged,
   editHref,
@@ -259,6 +260,9 @@ export function ResultRow({
   /** Every URL/reference group belonging to one document (same fromId), length >= 1. */
   groups: FindingGroup[]
   previewDocument?: PreviewDocumentValue
+  /** True while the preview-documents batch is still resolving - renders the native
+   * skeleton instead of flashing the raw type/id fallback and reflowing when data lands. */
+  previewLoading?: boolean
   acknowledgedKeys: Set<string>
   onToggleAcknowledged: (key: string) => void
   /** Builds the full URL of the standalone editor for a finding - used as anchor hrefs so
@@ -351,12 +355,12 @@ export function ResultRow({
           }}
         />
         <Stack gap={2} flex={1} style={{minWidth: 0, opacity: acknowledged ? 0.5 : 1}}>
-          {schemaType && previewDocument ? (
+          {schemaType && (previewDocument || previewLoading) ? (
             <Box title={hoverTitle} className="lc-row-preview" style={{minWidth: 0}}>
               <SanityDefaultPreview
                 icon={schemaType.icon}
                 imageUrl={previewValue?.imageUrl}
-                isPlaceholder={preview.isLoading}
+                isPlaceholder={preview.isLoading || (previewLoading && !previewDocument)}
                 media={previewValue?.media}
                 title={previewValue?.title ?? `${finding.fromType} (${finding.fromId})`}
                 subtitle={<span style={clampStyleUrl}>{findingSubtitle}</span>}

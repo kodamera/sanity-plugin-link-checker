@@ -9,6 +9,7 @@ import {TabbedFindings} from './TabbedFindings'
 export function LinkResultsTabs({
   findings,
   previewDocuments,
+  previewsLoading,
   acknowledgedKeys,
   onToggleAcknowledged,
   editHref,
@@ -17,6 +18,7 @@ export function LinkResultsTabs({
 }: {
   findings: BrokenLink[]
   previewDocuments: Map<string, PreviewDocumentValue>
+  previewsLoading?: boolean
   acknowledgedKeys: Set<string>
   onToggleAcknowledged: (key: string) => void
   editHref: (finding: ScanFinding) => string
@@ -59,6 +61,7 @@ export function LinkResultsTabs({
         },
       ]}
       previewDocuments={previewDocuments}
+      previewsLoading={previewsLoading}
       acknowledgedKeys={acknowledgedKeys}
       onToggleAcknowledged={onToggleAcknowledged}
       onOpenEdit={onOpenEdit}

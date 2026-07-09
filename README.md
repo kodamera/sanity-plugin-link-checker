@@ -28,6 +28,29 @@ accurate external-link results too.
 - **Zero schema pollution** — the report document is not a registered schema type and never shows up in your content lists.
 - **Extensible** — plug in your own URL checker (e.g. a proxy), or use the React-free scanning core in your own scripts and Functions.
 
+## Why check links in the CMS instead of crawling the site?
+
+Site crawlers and SEO suites (Ahrefs, Screaming Frog, Dr. Link Check, ...) find broken links by
+crawling your **rendered pages**. That works — but it reports the symptom, not the source. This
+plugin works on the content itself, which changes what's possible:
+
+- **Catch problems before they're published.** Crawlers only see live pages. This scans drafts
+  and release versions too, so a dead link in tomorrow's landing page never ships.
+- **Fix in one click, not one investigation.** A crawler tells you _page X has a broken link_;
+  someone still has to figure out which document and which field that came from. Here every
+  finding opens the document with the offending field focused.
+- **Dangling references are invisible to crawlers.** A reference to a deleted document usually
+  doesn't render as a broken link — it renders as silently missing content. Only a
+  content-side check can find it.
+- **Editors work where they already are.** Findings live in the Studio with document previews,
+  draft/published status, and a resolve workflow — no separate tool, login, or CSV export.
+- **Free and unlimited.** No per-site subscription, no page quota; runs in your own
+  infrastructure (browser, CLI, or a Sanity Function).
+
+It's a complement, not a replacement: crawlers still cover what only rendered pages can show
+(redirect chains, links added by frontend code, orphan pages) and off-site SEO (backlinks,
+rankings). This covers the half they can't see — the content before it becomes a page.
+
 ## Installation
 
 ```sh

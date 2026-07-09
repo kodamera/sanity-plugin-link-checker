@@ -51,6 +51,7 @@ export function TabbedFindings<T extends ScanFinding>({
   idPrefix,
   tabs,
   previewDocuments,
+  previewsLoading = false,
   acknowledgedKeys,
   onToggleAcknowledged,
   onOpenEdit,
@@ -60,6 +61,7 @@ export function TabbedFindings<T extends ScanFinding>({
   idPrefix: string
   tabs: FindingTabDef<T>[]
   previewDocuments: Map<string, PreviewDocumentValue>
+  previewsLoading?: boolean
   acknowledgedKeys: Set<string>
   onToggleAcknowledged: (key: string) => void
   onOpenEdit: (finding: ScanFinding) => void
@@ -128,6 +130,7 @@ export function TabbedFindings<T extends ScanFinding>({
               key={docId}
               groups={groups}
               previewDocument={previewDocuments.get(docId)}
+              previewLoading={previewsLoading}
               acknowledgedKeys={acknowledgedKeys}
               onToggleAcknowledged={onToggleAcknowledged}
               editHref={editHref}
