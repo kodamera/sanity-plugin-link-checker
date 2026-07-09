@@ -23,6 +23,13 @@
 // private / link-local / cloud-metadata hosts, and an optional shared-secret header - set
 // LINK_PROXY_SECRET in your deployment env and pass the same value as `x-proxy-secret` from
 // the Studio config above if this proxy is reachable from outside your own network.
+// Redirects are never blindly followed: each hop's Location target is re-validated against
+// the same protocol/host guardrails before it is fetched, so a same-host redirect to a
+// blocked target can't be used to bypass the checks above.
+// Known limitation: a public hostname that *resolves* to a private/internal IP is not
+// caught here (the check is on the hostname, not the resolved address) - run this proxy in
+// an environment without access to internal networks, or add DNS resolution checks if that
+// matters for your deployment.
 
 interface ProxyRequest {
   method?: string
@@ -45,10 +52,63 @@ const BLOCKED_HOSTNAME_PATTERNS = [
   /^169\.254\./, // link-local, incl. cloud metadata (169.254.169.254)
   /^\[?::1\]?$/,
   /^\[?fc[0-9a-f]{2}:/i, // unique local IPv6
+  /^\[?::ffff:127\./i, // IPv4-mapped IPv6 loopback
+  /^\[?::ffff:(10|192\.168|169\.254)\./i, // IPv4-mapped IPv6 private/link-local
+  /^\[?fe80:/i, // IPv6 link-local
+  /^\[?fd[0-9a-f]{2}:/i, // unique local IPv6 (fd00::/8 - the fc pattern above only covers fc00-fcff)
 ]
 
+/**
+ * Node's URL parser canonicalizes IPv4-mapped IPv6 literals to compressed hex form
+ * (e.g. 'http://[::ffff:127.0.0.1]/' yields hostname '::ffff:7f00:1'), so dotted-decimal
+ * patterns never see them. Convert the mapped payload back to dotted decimal so the
+ * IPv4 blocklist entries apply.
+ */
+function normalizeHost(hostname: string): string {
+  const unbracketed = hostname.replace(/^\[|\]$/g, '')
+  const mappedHex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(unbracketed)
+  if (mappedHex) {
+    const hi = parseInt(mappedHex[1], 16)
+    const lo = parseInt(mappedHex[2], 16)
+    // eslint-disable-next-line no-bitwise
+    return `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`
+  }
+  const mappedDotted = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(unbracketed)
+  if (mappedDotted) return mappedDotted[1]
+  return unbracketed
+}
+
 function isBlockedHost(hostname: string): boolean {
-  return BLOCKED_HOSTNAME_PATTERNS.some((pattern) => pattern.test(hostname))
+  const host = normalizeHost(hostname)
+  return BLOCKED_HOSTNAME_PATTERNS.some((pattern) => pattern.test(host))
+}
+
+function isBlockedUrl(candidate: URL): boolean {
+  return !['http:', 'https:'].includes(candidate.protocol) || isBlockedHost(candidate.hostname)
+}
+
+const timeoutMs = 8000
+const MAX_REDIRECTS = 5
+
+async function fetchWithGuardedRedirects(
+  start: URL,
+  method: 'HEAD' | 'GET',
+): Promise<Response | 'blocked-redirect' | 'too-many-redirects'> {
+  let current = start
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const response = await fetch(current.toString(), {
+      method,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    if (response.status < 300 || response.status >= 400) return response
+    const location = response.headers.get('location')
+    if (!location) return response
+    const next = new URL(location, current) // relative Location is resolved against current
+    if (isBlockedUrl(next)) return 'blocked-redirect'
+    current = next
+  }
+  return 'too-many-redirects'
 }
 
 export default async function handler(req: ProxyRequest, res: ProxyResponse): Promise<void> {
@@ -78,37 +138,33 @@ export default async function handler(req: ProxyRequest, res: ProxyResponse): Pr
     return
   }
 
-  const timeoutMs = 8000
-
   try {
-    let response: Response
+    let result: Response | 'blocked-redirect' | 'too-many-redirects'
     try {
-      response = await fetch(parsed.toString(), {
-        method: 'HEAD',
-        redirect: 'follow',
-        signal: AbortSignal.timeout(timeoutMs),
-      })
-      if (response.status === 405 || response.status === 501) {
-        response = await fetch(parsed.toString(), {
-          method: 'GET',
-          redirect: 'follow',
-          signal: AbortSignal.timeout(timeoutMs),
-        })
+      result = await fetchWithGuardedRedirects(parsed, 'HEAD')
+      if (result instanceof Response && (result.status === 405 || result.status === 501)) {
+        result = await fetchWithGuardedRedirects(parsed, 'GET')
       }
     } catch {
-      response = await fetch(parsed.toString(), {
-        method: 'GET',
-        redirect: 'follow',
-        signal: AbortSignal.timeout(timeoutMs),
-      })
+      result = await fetchWithGuardedRedirects(parsed, 'GET')
     }
 
-    if (response.status >= 400) {
-      res.status(200).json({status: 'broken', httpStatus: response.status, reason: 'http-error'})
+    if (result === 'blocked-redirect') {
+      res.status(200).json({status: 'unverifiable', reason: 'blocked-redirect'})
       return
     }
 
-    res.status(200).json({status: 'ok', httpStatus: response.status})
+    if (result === 'too-many-redirects') {
+      res.status(200).json({status: 'broken', reason: 'too-many-redirects'})
+      return
+    }
+
+    if (result.status >= 400) {
+      res.status(200).json({status: 'broken', httpStatus: result.status, reason: 'http-error'})
+      return
+    }
+
+    res.status(200).json({status: 'ok', httpStatus: result.status})
   } catch (err) {
     if (err instanceof DOMException && err.name === 'TimeoutError') {
       res.status(200).json({status: 'broken', reason: 'timeout'})
