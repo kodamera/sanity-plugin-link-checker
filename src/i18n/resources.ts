@@ -39,6 +39,7 @@ const resources = {
   'progress.checking-references': 'Checking references',
   'progress.fetching-documents': 'Fetching documents',
   'progress.starting': 'Starting',
+  'result.finding-subtitle': 'Link in {{fieldPath}}: {{value}}',
   'result.resolve': 'Resolve',
   'result.resolve-tooltip': "Resolve if you've checked and fixed the link.",
   'result.unresolve': 'Unresolve',

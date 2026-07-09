@@ -39,6 +39,7 @@ const resources = {
   'progress.checking-references': 'Kontrollerar referenser',
   'progress.fetching-documents': 'Hämtar dokument',
   'progress.starting': 'Startar',
+  'result.finding-subtitle': 'Länk i {{fieldPath}}: {{value}}',
   'result.resolve': 'Lös',
   'result.resolve-tooltip': 'Lös när du har kontrollerat och åtgärdat länken.',
   'result.unresolve': 'Ångra lösning',

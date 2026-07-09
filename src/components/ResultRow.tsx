@@ -1,6 +1,13 @@
 import {Box, Button, Flex, Stack, Text, Tooltip} from '@sanity/ui'
-import {type CSSProperties, type JSX, type MouseEvent, useCallback, useState} from 'react'
-import {Preview, useSchema, useTranslation} from 'sanity'
+import {
+  type CSSProperties,
+  type JSX,
+  type MouseEvent,
+  type ReactNode,
+  useCallback,
+  useState,
+} from 'react'
+import {SanityDefaultPreview, useSchema, useTranslation, useValuePreview} from 'sanity'
 
 import {linkCheckerLocaleNamespace} from '../i18n'
 import {describeFieldPath} from '../lib/humanizeFieldPath'
@@ -63,8 +70,19 @@ export function ResultRow({
   const schema = useSchema()
   const schemaType = schema.get(finding.fromType)
   const brokenValue = finding.kind === 'reference' ? finding.refId : finding.href
+  const findingSubtitle = t('result.finding-subtitle', {
+    fieldPath: describeFieldPath(finding.fieldPath),
+    value: brokenValue,
+  })
   const key = getFindingKey(finding)
   const [leaving, setLeaving] = useState(false)
+  const preview = useValuePreview({
+    enabled: Boolean(schemaType && previewDocument),
+    schemaType,
+    value: previewDocument,
+  })
+  const previewValue = preview.value as
+    {imageUrl?: string; media?: ReactNode; title?: ReactNode} | undefined
 
   // A working link has nothing to fix - only offer the action where there's an actual
   // problem (always true for a dangling reference), or to let someone revert a past mark.
@@ -83,8 +101,11 @@ export function ResultRow({
   }, [onToggleAcknowledged, key])
 
   const handleOpen = useCallback(() => onOpenEdit(finding), [onOpenEdit, finding])
+  const stopRowClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+  }, [])
 
-  const handleClick = useCallback(
+  const handleLinkClick = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
       // Let the browser handle modifier/middle clicks natively (open in new tab/window).
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
@@ -101,36 +122,53 @@ export function ResultRow({
       paddingY={3}
       style={{
         borderBottom: showDivider ? '1px solid var(--card-border-color)' : undefined,
+        cursor: 'pointer',
         opacity: leaving ? 0 : 1,
+        position: 'relative',
         transform: leaving ? 'translateX(6px)' : 'translateX(0)',
         transition: `opacity ${EXIT_ANIMATION_MS}ms ease, transform ${EXIT_ANIMATION_MS}ms ease`,
       }}
     >
+      <a
+        aria-label={`${finding.fromType} (${finding.fromId})`}
+        href={editHref}
+        onClick={handleLinkClick}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+        }}
+      />
       <Flex align="center" gap={3}>
         <Stack gap={2} flex={1} style={{minWidth: 0, opacity: acknowledged ? 0.5 : 1}}>
-          <a href={editHref} onClick={handleClick} style={{textDecoration: 'none', minWidth: 0}}>
-            {schemaType && previewDocument ? (
-              <Preview
+          {schemaType && previewDocument ? (
+            <Box title={`${finding.fieldPath} — ${brokenValue}`} style={{minWidth: 0}}>
+              <SanityDefaultPreview
+                icon={schemaType.icon}
+                imageUrl={previewValue?.imageUrl}
+                isPlaceholder={preview.isLoading}
+                media={previewValue?.media}
+                title={previewValue?.title ?? `${finding.fromType} (${finding.fromId})`}
+                subtitle={<span style={clampStyleUrl}>{findingSubtitle}</span>}
+                error={preview.error}
                 layout="default"
-                schemaType={schemaType}
-                value={previewDocument}
                 withBorder={false}
                 withRadius={false}
                 withShadow={false}
               />
-            ) : (
+            </Box>
+          ) : (
+            <>
               <Text size={1} weight="medium">
                 <span style={clampStyle}>{`${finding.fromType} (${finding.fromId})`}</span>
               </Text>
-            )}
-          </a>
-          <Box title={`${finding.fieldPath} — ${brokenValue}`} style={{minWidth: 0}}>
-            <Text size={1} muted>
-              <span style={clampStyleUrl}>
-                {describeFieldPath(finding.fieldPath)} · {brokenValue}
-              </span>
-            </Text>
-          </Box>
+              <Box title={`${finding.fieldPath} — ${brokenValue}`} style={{minWidth: 0}}>
+                <Text size={1} muted>
+                  <span style={clampStyleUrl}>{findingSubtitle}</span>
+                </Text>
+              </Box>
+            </>
+          )}
         </Stack>
         {/* One flex group, one gap value, for all three trailing elements - badge, action,
             and dot (anchored last: badge width varies row to row, so the far right edge is
@@ -149,24 +187,26 @@ export function ResultRow({
             // question - "Fixed?" read as hesitant rather than a confident action. Tooltip
             // spells out the effect. mode="ghost" (visible outline) instead of "bleed"
             // (invisible until hover) - otherwise this reads as plain text next to the badge.
-            <Tooltip
-              content={
-                <Text size={1}>
-                  {acknowledged ? t('result.unresolve-tooltip') : t('result.resolve-tooltip')}
-                </Text>
-              }
-              placement="top"
-              portal
-            >
-              <Button
-                text={acknowledged ? t('result.unresolve') : t('result.resolve')}
-                mode="ghost"
-                fontSize={1}
-                padding={2}
-                disabled={leaving}
-                onClick={handleToggle}
-              />
-            </Tooltip>
+            <Box onClick={stopRowClick} style={{position: 'relative', zIndex: 2}}>
+              <Tooltip
+                content={
+                  <Text size={1}>
+                    {acknowledged ? t('result.unresolve-tooltip') : t('result.resolve-tooltip')}
+                  </Text>
+                }
+                placement="top"
+                portal
+              >
+                <Button
+                  text={acknowledged ? t('result.unresolve') : t('result.resolve')}
+                  mode="ghost"
+                  fontSize={1}
+                  padding={2}
+                  disabled={leaving}
+                  onClick={handleToggle}
+                />
+              </Tooltip>
+            </Box>
           )}
           <DocStateDot state={finding.docState} updatedAt={finding.docStateUpdatedAt} />
         </Flex>
