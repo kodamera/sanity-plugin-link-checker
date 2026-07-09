@@ -16,7 +16,7 @@ accurate external-link results too.
 
 ## Features
 
-- **Finds broken external links** — every `href` in your Portable Text content, checked over HTTP with real status codes (via the included Document Function or CLI).
+- **Finds broken external links** — every URL in your content, checked over HTTP with real status codes (via the included Document Function or CLI).
 - **Finds dangling references** — reference fields pointing at documents that no longer exist, checked against both published and draft versions.
 - **Scans everything** — published documents, drafts, and release versions across the entire dataset.
 - **Jump straight to the problem** — click any finding to open the document with the offending field focused and scrolled into view.
@@ -183,3 +183,10 @@ with default configuration for build & watch scripts.
 
 See [Testing a plugin in Sanity Studio](https://github.com/sanity-io/plugin-kit#testing-a-plugin-in-sanity-studio)
 on how to run this plugin with hotreload in the studio.
+
+### Release New Version
+
+Run ["CI & Release" workflow](https://github.com/kodamera/sanity-plugin-link-checker/actions/workflows/main.yml).
+Make sure to select the main branch and check "Release new version".
+
+Semantic release will only publish from configured release branches, so it is safe to run the workflow from any branch.
