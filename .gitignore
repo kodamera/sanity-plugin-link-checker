@@ -61,3 +61,6 @@ dist
 
 # Internal implementation plans
 plans
+
+# Sanity dev runtime
+.sanity
