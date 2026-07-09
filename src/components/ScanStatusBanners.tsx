@@ -1,5 +1,8 @@
 import {Button, Card, Flex, Spinner, Text} from '@sanity/ui'
 import type {JSX} from 'react'
+import {Translate, useTranslation} from 'sanity'
+
+import {linkCheckerLocaleNamespace} from '../i18n'
 
 // Bordered, unfilled boxes (no shadow/tone fill) - matches the calm, hairline-box notices used
 // throughout Sanity's own document pane, rather than a loud colored alert banner.
@@ -27,14 +30,14 @@ export function ScanProgressBanner({
 }
 
 export function AwaitingFunctionBanner(): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
+
   return (
     <Card padding={4} radius={2} shadow={0} border tone="transparent">
       <Flex align="center" gap={3}>
         <Spinner muted />
         <Text size={1} muted>
-          Results above are from the quick browser-side pass. If a Document Function is deployed,
-          it&apos;s rerunning the check server-side now (can take a couple of minutes) and will
-          replace these automatically when done.
+          {t('banner.awaiting-function')}
         </Text>
       </Flex>
     </Card>
@@ -50,13 +53,14 @@ export function AwaitingFunctionBanner(): JSX.Element {
  * show after all, with the CORS banner explaining their accuracy.
  */
 export function VerifyingLinksPlaceholder(): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
+
   return (
     <Card padding={4} radius={2} shadow={0} tone="transparent" border>
       <Flex align="center" gap={3}>
         <Spinner muted />
         <Text size={1} muted>
-          Verifying external links server-side… results appear here when the check completes (up to
-          ~90 seconds).
+          {t('banner.verifying-links')}
         </Text>
       </Flex>
     </Card>
@@ -64,18 +68,25 @@ export function VerifyingLinksPlaceholder(): JSX.Element {
 }
 
 export function CorsBanner({onDismiss}: {onDismiss: () => void}): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
+
   return (
     <Card padding={4} radius={2} shadow={0} border tone="transparent">
       <Flex align="flex-start" justify="space-between" gap={4}>
         <Text size={1} muted>
-          Running without a custom <code>checkUrl</code>: most &ldquo;Unverifiable&rdquo; results
-          below are the browser blocking cross-origin status reads (CORS), not necessarily dead
-          links. For accurate results, deploy a Document Function (
-          <code>npx sanity-plugin-link-checker init-function</code>) so &ldquo;Run scan&rdquo;
-          triggers one automatically, or run <code>npx sanity-plugin-link-checker</code> by hand —
-          see the plugin README.
+          <Translate
+            t={t}
+            i18nKey="banner.cors"
+            components={{Cli: 'code', Code: 'code', Command: 'code'}}
+          />
         </Text>
-        <Button text="Dismiss" mode="bleed" fontSize={1} padding={2} onClick={onDismiss} />
+        <Button
+          text={t('banner.dismiss')}
+          mode="bleed"
+          fontSize={1}
+          padding={2}
+          onClick={onDismiss}
+        />
       </Flex>
     </Card>
   )
