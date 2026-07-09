@@ -39,6 +39,13 @@ export interface LinkCheckerPluginConfig {
    * noise.
    */
   excludeUrls?: (string | RegExp)[]
+  /**
+   * Skip draft-only documents (never published) whose last edit is older than this many
+   * days - abandoned drafts nobody will publish don't need their links fixed. Drafts and
+   * versions OF a published document are always scanned regardless of age, and so are
+   * fresh drafts. Default: no age limit (all drafts scanned).
+   */
+  ignoreDraftsOlderThanDays?: number
 }
 
 /** Publish state of the document a finding came from, at scan time. */

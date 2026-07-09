@@ -21,6 +21,7 @@ interface SerializedScanConfig {
   concurrency?: number
   timeoutMs?: number
   hostDelayMs?: number
+  ignoreDraftsOlderThanDays?: number
   excludeTypes?: string[]
   excludeUrls?: string[]
   excludeUrlPatterns?: {source: string; flags: string}[]
@@ -32,6 +33,7 @@ export function serializeScanConfig(config: LinkCheckerPluginConfig): Serialized
     concurrency: config.concurrency,
     timeoutMs: config.timeoutMs,
     hostDelayMs: config.hostDelayMs,
+    ignoreDraftsOlderThanDays: config.ignoreDraftsOlderThanDays,
     excludeTypes: config.excludeTypes,
     excludeUrls: excludeUrls.filter((p): p is string => typeof p === 'string'),
     excludeUrlPatterns: excludeUrls
@@ -48,6 +50,7 @@ export function deserializeScanConfig(
     concurrency: raw.concurrency ?? undefined,
     timeoutMs: raw.timeoutMs ?? undefined,
     hostDelayMs: raw.hostDelayMs ?? undefined,
+    ignoreDraftsOlderThanDays: raw.ignoreDraftsOlderThanDays ?? undefined,
     excludeTypes: raw.excludeTypes ?? undefined,
     excludeUrls: [
       ...(raw.excludeUrls ?? []),

@@ -72,6 +72,27 @@ async function fetchAllDocs(
 }
 
 /**
+ * Drops draft-only documents (no published counterpart anywhere in the dataset) whose last
+ * edit is older than the cutoff - abandoned drafts nobody will publish. Drafts/versions of
+ * a published document survive regardless of age (the published copy is live and the edits
+ * are presumably still heading somewhere), as do fresh drafts and anything undated.
+ */
+export function filterStaleDrafts(docs: RawDoc[], maxAgeDays: number | undefined): RawDoc[] {
+  if (!maxAgeDays || maxAgeDays <= 0) return docs
+  const publishedIds = new Set(
+    docs.filter((d) => getPublishedId(DocumentId(d._id)) === d._id).map((d) => d._id),
+  )
+  const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000
+  return docs.filter((doc) => {
+    const publishedId: string = getPublishedId(DocumentId(doc._id))
+    if (doc._id === publishedId) return true
+    if (publishedIds.has(publishedId)) return true
+    if (!doc._updatedAt) return true
+    return Date.parse(doc._updatedAt) >= cutoff
+  })
+}
+
+/**
  * A document with an unpublished draft (or a release version) appears as a second entry in
  * the dataset (`foo`, `drafts.foo`, `versions.summer-sale.foo`, ...). Maps each published id
  * to its edit state so findings can show whether the offending document is only a draft,
@@ -171,7 +192,10 @@ export async function runScan(
   // as broken). Pin it so draft coverage doesn't hinge on which apiVersion a user picked.
   const rawClient = client.withConfig({perspective: 'raw'})
 
-  const docs = await fetchAllDocs(rawClient, config.excludeTypes ?? [], onProgress)
+  const docs = filterStaleDrafts(
+    await fetchAllDocs(rawClient, config.excludeTypes ?? [], onProgress),
+    config.ignoreDraftsOlderThanDays,
+  )
 
   onProgress?.('Checking references', 0, 1)
   const brokenRefs = await scanInternalRefs(rawClient, docs)

@@ -139,6 +139,38 @@ describe('runScan', () => {
     )
   })
 
+  it('skips stale never-published drafts but keeps drafts of published documents', async () => {
+    const staleDate = '2020-01-01T00:00:00Z'
+    const docs = [
+      // Abandoned draft: never published, last touched years ago -> skipped.
+      {
+        _id: 'drafts.abandoned',
+        _type: 'post',
+        _updatedAt: staleDate,
+        ref: {_type: 'reference', _ref: 'gone'},
+      },
+      // Old draft OF a published document -> kept regardless of age.
+      {
+        _id: 'live',
+        _type: 'post',
+        _updatedAt: staleDate,
+      },
+      {
+        _id: 'drafts.live',
+        _type: 'post',
+        _updatedAt: staleDate,
+        ref: {_type: 'reference', _ref: 'also-gone'},
+      },
+    ]
+    const client = mockClient(docs, [])
+
+    const result = await runScan(client, {...config, ignoreDraftsOlderThanDays: 90}, 'cli')
+
+    expect(result.documentsScanned).toBe(2)
+    expect(result.findings).toHaveLength(1)
+    expect(result.findings[0]).toMatchObject({kind: 'reference', fromId: 'live'})
+  })
+
   it('always excludes sanity.* system types and passes excludeTypes to the docs query', async () => {
     const client = mockClient([], [])
 

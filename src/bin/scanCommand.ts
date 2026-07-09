@@ -31,6 +31,9 @@ Options:
                         always-skipped "sanity.*" system types (e.g. "siteSettings,redirect")
   --exclude-urls <s>    Comma-separated URL substrings to skip when checking external
                         links (e.g. "linkedin.com" for hosts that block automated checks)
+  --ignore-drafts-older-than <days>
+                        Skip never-published drafts whose last edit is older than this
+                        many days (abandoned drafts); drafts of published docs always scan
   --fail-on-findings    Exit with code 1 if any broken links/references are found (for CI)
   --help                Show this help
 
@@ -53,6 +56,7 @@ export async function runScanCommand(argv: string[]): Promise<void> {
       'host-delay': {type: 'string'},
       'exclude-types': {type: 'string'},
       'exclude-urls': {type: 'string'},
+      'ignore-drafts-older-than': {type: 'string'},
       'fail-on-findings': {type: 'boolean', default: false},
       help: {type: 'boolean', default: false},
     },
@@ -96,6 +100,9 @@ export async function runScanCommand(argv: string[]): Promise<void> {
         ?.split(',')
         .map((u) => u.trim())
         .filter(Boolean),
+      ignoreDraftsOlderThanDays: values['ignore-drafts-older-than']
+        ? Number(values['ignore-drafts-older-than'])
+        : undefined,
     },
     'cli',
     (message, done, total) => {
