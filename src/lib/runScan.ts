@@ -23,6 +23,15 @@ interface RawDoc {
 export const PAGE_SIZE = 500
 
 /**
+ * Upper bound on `ok` link findings kept in the stored result. Problem findings
+ * (broken/unverifiable/references) are always kept in full - they're the product.
+ * `ok` findings only feed the OK tab; past this count they're counted, not stored,
+ * so a 50k-link dataset can't produce a multi-MB report document that breaks
+ * mutations, listeners, and the localStorage mirror.
+ */
+export const MAX_OK_FINDINGS = 2000
+
+/**
  * Excludes system docs (`_.**`, e.g. `_.schemas...`) but keeps drafts and release versions
  * (`versions.<releaseId>.<id>`), since a dangling reference to/from either is still real.
  *
@@ -208,11 +217,17 @@ export async function runScan(
 
   const docStates = buildDocStateMap(docs)
 
+  const deduped = normalizeAndDedupe([...brokenRefs, ...brokenLinks], docStates)
+  const okFindings = deduped.filter((f) => f.kind === 'link' && f.result.status === 'ok')
+  const problemFindings = deduped.filter((f) => !(f.kind === 'link' && f.result.status === 'ok'))
+  const keptOk = okFindings.slice(0, MAX_OK_FINDINGS)
+
   return {
     ranAt: new Date().toISOString(),
-    findings: normalizeAndDedupe([...brokenRefs, ...brokenLinks], docStates),
+    findings: [...problemFindings, ...keptOk],
     documentsScanned: docs.length,
     urlsChecked,
+    okFindingsTruncated: okFindings.length - keptOk.length || undefined,
     source,
   }
 }

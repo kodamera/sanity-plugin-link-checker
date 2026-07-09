@@ -456,6 +456,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                     editHref={editHref}
                     onOpenEdit={handleOpenEdit}
                     onOpenDetails={handleOpenDetails}
+                    okFindingsTruncated={result?.okFindingsTruncated}
                   />
                 )}
               </Stack>

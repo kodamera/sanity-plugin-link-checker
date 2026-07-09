@@ -1,7 +1,7 @@
 import type {SanityClient} from '@sanity/client'
 import {describe, expect, it, vi} from 'vitest'
 
-import {PAGE_SIZE, runScan} from './runScan'
+import {MAX_OK_FINDINGS, PAGE_SIZE, runScan} from './runScan'
 import type {LinkCheckerPluginConfig} from './types'
 
 const config: LinkCheckerPluginConfig = {
@@ -189,5 +189,90 @@ describe('runScan', () => {
     await runScan(client, config, 'cli')
 
     expect(client.withConfig).toHaveBeenCalledWith({perspective: 'raw'})
+  })
+})
+
+describe('runScan ok-finding cap', () => {
+  // Unlike mockClient above (fixed two-call canned response, fine for < PAGE_SIZE fixtures),
+  // this fixture spans multiple PAGE_SIZE pages, so the fetch mock has to actually implement
+  // paging: filter by `lastId` and slice to PAGE_SIZE, same as the real `_id > $lastId` /
+  // `order(_id asc)` query. Calls without `lastId` are scanInternalRefs' existence-check
+  // query - answered with "nothing exists" so any reference candidate reads as broken.
+  function mockPagedClient(allDocs: {_id: string}[]): SanityClient {
+    const fetch = vi.fn(async (_query: string, params: Record<string, unknown>) => {
+      if ('lastId' in params) {
+        const lastId = params.lastId as string
+        return allDocs
+          .filter((d) => d._id > lastId)
+          .sort((a, b) => (a._id < b._id ? -1 : 1))
+          .slice(0, PAGE_SIZE)
+      }
+      return []
+    })
+    const client = {fetch, withConfig: vi.fn()} as unknown as SanityClient
+    ;(client.withConfig as ReturnType<typeof vi.fn>).mockReturnValue(client)
+    return client
+  }
+
+  // High concurrency (one batch, no inter-batch delay) and no host pacing - all the fixture
+  // URLs share the example.com host, and the real defaults (concurrency 4, 1s per-host
+  // pacing) would serialize thousands of near-instant mock checks and make this test take
+  // minutes. `checkUrl` is mocked, so none of this affects what's actually being tested.
+  function fastConfig(docCount: number): LinkCheckerPluginConfig {
+    return {
+      checkUrl: async () => ({status: 'ok' as const}),
+      concurrency: docCount + 10,
+      hostDelayMs: 0,
+    }
+  }
+
+  function okDocs(count: number): {_id: string; _type: string; url: string}[] {
+    return Array.from({length: count}, (_, i) => ({
+      _id: `d${String(i).padStart(6, '0')}`,
+      _type: 'post',
+      url: `https://example.com/${i}`,
+    }))
+  }
+
+  it('caps stored ok findings at MAX_OK_FINDINGS and reports the truncated count', async () => {
+    const total = MAX_OK_FINDINGS + 5
+    const docs = okDocs(total)
+    const client = mockPagedClient(docs)
+
+    const result = await runScan(client, fastConfig(total), 'cli')
+
+    const okCount = result.findings.filter(
+      (f) => f.kind === 'link' && f.result.status === 'ok',
+    ).length
+    expect(okCount).toBe(MAX_OK_FINDINGS)
+    expect(result.okFindingsTruncated).toBe(5)
+    expect(result.urlsChecked).toBe(total)
+  })
+
+  it('leaves okFindingsTruncated undefined when the ok-finding count is under the cap', async () => {
+    const docs = okDocs(3)
+    const client = mockPagedClient(docs)
+
+    const result = await runScan(client, fastConfig(3), 'cli')
+
+    expect(result.findings).toHaveLength(3)
+    expect(result.okFindingsTruncated).toBeUndefined()
+  })
+
+  it('never drops problem findings even when ok findings exceed the cap', async () => {
+    const total = MAX_OK_FINDINGS + 5
+    const docs = [
+      {_id: 'zzz-broken', _type: 'post', ref: {_type: 'reference', _ref: 'missing-target'}},
+      ...okDocs(total),
+    ]
+    const client = mockPagedClient(docs)
+
+    const result = await runScan(client, fastConfig(total), 'cli')
+
+    const problems = result.findings.filter((f) => !(f.kind === 'link' && f.result.status === 'ok'))
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toMatchObject({kind: 'reference', refId: 'missing-target'})
+    expect(result.findings).toHaveLength(MAX_OK_FINDINGS + 1)
+    expect(result.okFindingsTruncated).toBe(5)
   })
 })
