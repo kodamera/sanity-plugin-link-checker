@@ -5,6 +5,7 @@ import {createClient} from '@sanity/client'
 
 import {writeReport} from '../lib/reportDocument'
 import {runScan} from '../lib/runScan'
+import {summarizeResult} from '../lib/summarizeResult'
 
 const HELP = `
 sanity-plugin-link-checker [scan]
@@ -91,16 +92,19 @@ export async function runScanCommand(argv: string[]): Promise<void> {
     await writeFile(outPath, JSON.stringify(result, null, 2))
   }
 
-  const brokenRefs = result.findings.filter((f) => f.kind === 'reference').length
-  const brokenLinks = result.findings.filter((f) => f.kind === 'link').length
+  const {brokenRefs, brokenLinks, unverifiableLinks, issueCount} = summarizeResult(result)
   console.log(
     `Scanned ${result.documentsScanned} documents, checked ${result.urlsChecked} external URLs.`,
   )
-  console.log(`Found ${brokenRefs} broken reference(s), ${brokenLinks} broken link(s).`)
+  console.log(
+    `Found ${brokenRefs} broken reference(s), ${brokenLinks} broken link(s)${
+      unverifiableLinks > 0 ? `, ${unverifiableLinks} unverifiable link(s).` : '.'
+    }`,
+  )
   console.log(`Report saved to the dataset - the Studio's Link Checker tool will pick it up.`)
   if (outPath) console.log(`Also wrote a local copy to ${outPath}`)
 
-  if (values['fail-on-findings'] && result.findings.length > 0) {
+  if (values['fail-on-findings'] && issueCount > 0) {
     process.exitCode = 1
   }
 }
