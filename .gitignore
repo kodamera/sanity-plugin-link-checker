@@ -66,4 +66,4 @@ plans
 .sanity
 
 # Sanity function build output
-functions/**/.build
+**/.build
