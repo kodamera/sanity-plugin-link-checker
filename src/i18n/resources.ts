@@ -13,8 +13,10 @@ const resources = {
   'banner.verifying-links':
     'Verifying external links server-side... results appear here when the check completes (up to ~90 seconds).',
   'doc-state.draft': 'Draft only',
+  'doc-state.draft-with-date': 'Draft - edited {{date}}',
   'doc-state.edited': 'Published, edited',
   'doc-state.published': 'Published',
+  'doc-state.published-with-date': 'Published - edited {{date}}',
   'empty.active-broken-references': 'No active broken references.',
   'empty.broken-links': 'No broken links.',
   'empty.no-scan': 'No scan has been run yet.',

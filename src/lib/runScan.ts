@@ -5,11 +5,18 @@ import {REPORT_DOC_TYPE} from './reportDocument'
 import {scanExternalLinks} from './scanExternalLinks'
 import {scanInternalRefs} from './scanInternalRefs'
 import {TRIGGER_DOC_TYPE} from './triggerDocument'
-import type {DocumentState, LinkCheckerPluginConfig, ScanFinding, ScanResult} from './types'
+import type {
+  DocumentState,
+  DocumentStateUpdatedAt,
+  LinkCheckerPluginConfig,
+  ScanFinding,
+  ScanResult,
+} from './types'
 
 interface RawDoc {
   _id: string
   _type: string
+  _updatedAt?: string
   [key: string]: unknown
 }
 
@@ -61,28 +68,52 @@ async function fetchAllDocs(
  * to its edit state so findings can show whether the offending document is only a draft,
  * only published, or published-with-pending-edits.
  */
-function buildDocStateMap(docs: RawDoc[]): Map<string, DocumentState> {
-  const flags = new Map<string, {hasPublished: boolean; hasUnpublishedChanges: boolean}>()
+function latestDate(current: string | undefined, next: string | undefined): string | undefined {
+  if (!current) return next
+  if (!next) return current
+  return next > current ? next : current
+}
+
+function buildDocStateMap(
+  docs: RawDoc[],
+): Map<string, {state: DocumentState; updatedAt: DocumentStateUpdatedAt}> {
+  const flags = new Map<
+    string,
+    {
+      draftUpdatedAt?: string
+      hasPublished: boolean
+      hasUnpublishedChanges: boolean
+      publishedUpdatedAt?: string
+    }
+  >()
 
   for (const doc of docs) {
     const publishedId: string = getPublishedId(DocumentId(doc._id))
     const entry = flags.get(publishedId) ?? {hasPublished: false, hasUnpublishedChanges: false}
     if (doc._id === publishedId) {
       entry.hasPublished = true
+      entry.publishedUpdatedAt = latestDate(entry.publishedUpdatedAt, doc._updatedAt)
     } else {
       entry.hasUnpublishedChanges = true
+      entry.draftUpdatedAt = latestDate(entry.draftUpdatedAt, doc._updatedAt)
     }
     flags.set(publishedId, entry)
   }
 
-  const states = new Map<string, DocumentState>()
-  for (const [publishedId, {hasPublished, hasUnpublishedChanges}] of flags) {
+  const states = new Map<string, {state: DocumentState; updatedAt: DocumentStateUpdatedAt}>()
+  for (const [
+    publishedId,
+    {draftUpdatedAt, hasPublished, hasUnpublishedChanges, publishedUpdatedAt},
+  ] of flags) {
     if (hasPublished && hasUnpublishedChanges) {
-      states.set(publishedId, 'edited')
+      states.set(publishedId, {
+        state: 'edited',
+        updatedAt: {draft: draftUpdatedAt, published: publishedUpdatedAt},
+      })
     } else if (hasPublished) {
-      states.set(publishedId, 'published')
+      states.set(publishedId, {state: 'published', updatedAt: {published: publishedUpdatedAt}})
     } else {
-      states.set(publishedId, 'draft')
+      states.set(publishedId, {state: 'draft', updatedAt: {draft: draftUpdatedAt}})
     }
   }
   return states
@@ -96,13 +127,19 @@ function buildDocStateMap(docs: RawDoc[]): Map<string, DocumentState> {
  */
 function normalizeAndDedupe(
   findings: ScanFinding[],
-  docStates: Map<string, DocumentState>,
+  docStates: Map<string, {state: DocumentState; updatedAt: DocumentStateUpdatedAt}>,
 ): ScanFinding[] {
   const seen = new Map<string, ScanFinding>()
 
   for (const finding of findings) {
     const fromId: string = getPublishedId(DocumentId(finding.fromId))
-    const normalized: ScanFinding = {...finding, fromId, docState: docStates.get(fromId)}
+    const docState = docStates.get(fromId)
+    const normalized: ScanFinding = {
+      ...finding,
+      fromId,
+      docState: docState?.state,
+      docStateUpdatedAt: docState?.updatedAt,
+    }
     const identity = normalized.kind === 'reference' ? normalized.refId : normalized.href
     const key = `${normalized.kind}:${fromId}:${normalized.fieldPath}:${identity}`
     if (!seen.has(key)) {

@@ -1,6 +1,7 @@
 import {Box, Stack, Tab, TabList, TabPanel, Text} from '@sanity/ui'
 import {type JSX, useMemo, useState} from 'react'
 
+import type {PreviewDocumentValue} from '../lib/resolvePreviewDocuments'
 import {getFindingKey, type ScanFinding} from '../lib/types'
 import {ResultRow} from './ResultRow'
 
@@ -19,7 +20,7 @@ export interface FindingTabDef<T extends ScanFinding> {
 export function TabbedFindings<T extends ScanFinding>({
   idPrefix,
   tabs,
-  titles,
+  previewDocuments,
   acknowledgedKeys,
   onToggleAcknowledged,
   onOpenEdit,
@@ -27,7 +28,7 @@ export function TabbedFindings<T extends ScanFinding>({
 }: {
   idPrefix: string
   tabs: FindingTabDef<T>[]
-  titles: Map<string, string>
+  previewDocuments: Map<string, PreviewDocumentValue>
   acknowledgedKeys: Set<string>
   onToggleAcknowledged: (key: string) => void
   onOpenEdit: (finding: ScanFinding) => void
@@ -91,7 +92,7 @@ export function TabbedFindings<T extends ScanFinding>({
               <ResultRow
                 key={key}
                 finding={finding}
-                title={titles.get(finding.fromId)}
+                previewDocument={previewDocuments.get(finding.fromId)}
                 acknowledged={acknowledgedKeys.has(key)}
                 onToggleAcknowledged={onToggleAcknowledged}
                 editHref={editHref(finding)}

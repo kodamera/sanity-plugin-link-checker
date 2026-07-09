@@ -1,9 +1,10 @@
 import {Box, Button, Flex, Stack, Text, Tooltip} from '@sanity/ui'
 import {type CSSProperties, type JSX, type MouseEvent, useCallback, useState} from 'react'
-import {useTranslation} from 'sanity'
+import {Preview, useSchema, useTranslation} from 'sanity'
 
 import {linkCheckerLocaleNamespace} from '../i18n'
 import {describeFieldPath} from '../lib/humanizeFieldPath'
+import type {PreviewDocumentValue} from '../lib/resolvePreviewDocuments'
 import {getFindingKey, type ScanFinding} from '../lib/types'
 import {DocStateDot, LinkStatusBadge, ReferenceStatusBadge} from './StatusBadge'
 
@@ -40,7 +41,7 @@ const clampStyleUrl: CSSProperties = {
 
 export function ResultRow({
   finding,
-  title,
+  previewDocument,
   acknowledged,
   onToggleAcknowledged,
   editHref,
@@ -48,7 +49,7 @@ export function ResultRow({
   showDivider = true,
 }: {
   finding: ScanFinding
-  title?: string
+  previewDocument?: PreviewDocumentValue
   acknowledged: boolean
   onToggleAcknowledged: (key: string) => void
   /** Full URL of the standalone editor - used as the anchor href so cmd/middle-click opens a new tab. */
@@ -59,6 +60,8 @@ export function ResultRow({
   showDivider?: boolean
 }): JSX.Element {
   const {t} = useTranslation(linkCheckerLocaleNamespace)
+  const schema = useSchema()
+  const schemaType = schema.get(finding.fromType)
   const brokenValue = finding.kind === 'reference' ? finding.refId : finding.href
   const key = getFindingKey(finding)
   const [leaving, setLeaving] = useState(false)
@@ -106,9 +109,20 @@ export function ResultRow({
       <Flex align="center" gap={3}>
         <Stack gap={2} flex={1} style={{minWidth: 0, opacity: acknowledged ? 0.5 : 1}}>
           <a href={editHref} onClick={handleClick} style={{textDecoration: 'none', minWidth: 0}}>
-            <Text size={1} weight="medium">
-              <span style={clampStyle}>{title ?? `${finding.fromType} (${finding.fromId})`}</span>
-            </Text>
+            {schemaType && previewDocument ? (
+              <Preview
+                layout="default"
+                schemaType={schemaType}
+                value={previewDocument}
+                withBorder={false}
+                withRadius={false}
+                withShadow={false}
+              />
+            ) : (
+              <Text size={1} weight="medium">
+                <span style={clampStyle}>{`${finding.fromType} (${finding.fromId})`}</span>
+              </Text>
+            )}
           </a>
           <Box title={`${finding.fieldPath} — ${brokenValue}`} style={{minWidth: 0}}>
             <Text size={1} muted>
@@ -154,7 +168,7 @@ export function ResultRow({
               />
             </Tooltip>
           )}
-          <DocStateDot state={finding.docState} />
+          <DocStateDot state={finding.docState} updatedAt={finding.docStateUpdatedAt} />
         </Flex>
       </Flex>
     </Box>

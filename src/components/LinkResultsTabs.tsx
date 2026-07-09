@@ -2,19 +2,20 @@ import type {JSX} from 'react'
 import {useTranslation} from 'sanity'
 
 import {linkCheckerLocaleNamespace} from '../i18n'
+import type {PreviewDocumentValue} from '../lib/resolvePreviewDocuments'
 import {type BrokenLink, getFindingKey, type ScanFinding} from '../lib/types'
 import {TabbedFindings} from './TabbedFindings'
 
 export function LinkResultsTabs({
   findings,
-  titles,
+  previewDocuments,
   acknowledgedKeys,
   onToggleAcknowledged,
   editHref,
   onOpenEdit,
 }: {
   findings: BrokenLink[]
-  titles: Map<string, string>
+  previewDocuments: Map<string, PreviewDocumentValue>
   acknowledgedKeys: Set<string>
   onToggleAcknowledged: (key: string) => void
   editHref: (finding: ScanFinding) => string
@@ -55,7 +56,7 @@ export function LinkResultsTabs({
           items: findings.filter(isResolved),
         },
       ]}
-      titles={titles}
+      previewDocuments={previewDocuments}
       acknowledgedKeys={acknowledgedKeys}
       onToggleAcknowledged={onToggleAcknowledged}
       onOpenEdit={onOpenEdit}

@@ -24,7 +24,14 @@ function mockClient(docs: unknown[], existingIds: string[]): SanityClient {
 
 describe('runScan', () => {
   it('normalizes a draft-only document finding to its published id and marks it draft', async () => {
-    const docs = [{_id: 'drafts.a', _type: 'post', ref: {_type: 'reference', _ref: 'gone'}}]
+    const docs = [
+      {
+        _id: 'drafts.a',
+        _type: 'post',
+        _updatedAt: '2026-07-09T08:00:00Z',
+        ref: {_type: 'reference', _ref: 'gone'},
+      },
+    ]
     const client = mockClient(docs, [])
 
     const result = await runScan(client, config, 'cli')
@@ -34,6 +41,7 @@ describe('runScan', () => {
       kind: 'reference',
       fromId: 'a',
       docState: 'draft',
+      docStateUpdatedAt: {draft: '2026-07-09T08:00:00Z'},
     })
     expect(client.fetch).toHaveBeenNthCalledWith(
       1,
@@ -44,8 +52,18 @@ describe('runScan', () => {
 
   it('dedupes the same broken reference carried by both draft and published copies', async () => {
     const docs = [
-      {_id: 'a', _type: 'post', ref: {_type: 'reference', _ref: 'gone'}},
-      {_id: 'drafts.a', _type: 'post', ref: {_type: 'reference', _ref: 'gone'}},
+      {
+        _id: 'a',
+        _type: 'post',
+        _updatedAt: '2026-07-08T08:00:00Z',
+        ref: {_type: 'reference', _ref: 'gone'},
+      },
+      {
+        _id: 'drafts.a',
+        _type: 'post',
+        _updatedAt: '2026-07-09T08:00:00Z',
+        ref: {_type: 'reference', _ref: 'gone'},
+      },
     ]
     const client = mockClient(docs, [])
 
@@ -56,6 +74,10 @@ describe('runScan', () => {
       kind: 'reference',
       fromId: 'a',
       docState: 'edited',
+      docStateUpdatedAt: {
+        draft: '2026-07-09T08:00:00Z',
+        published: '2026-07-08T08:00:00Z',
+      },
     })
   })
 
