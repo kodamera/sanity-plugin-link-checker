@@ -40,6 +40,7 @@ const resources = {
   'result.finding-subtitle': 'Länk i {{fieldPath}}: {{value}}',
   'result.link-count_one': '{{count}} länk',
   'result.link-count_other': '{{count}} länkar',
+  'result.more-actions': 'Fler åtgärder',
   'result.occurrences_one': '{{count}} ställe',
   'result.occurrences_other': '{{count}} ställen',
   'result.open-link-tooltip': 'Öppna länken i en ny flik',

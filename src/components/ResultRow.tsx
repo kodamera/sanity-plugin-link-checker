@@ -1,4 +1,15 @@
-import {Badge, Box, Button, Flex, Stack, Text, Tooltip} from '@sanity/ui'
+import {
+  Badge,
+  Box,
+  Button,
+  Flex,
+  Menu,
+  MenuButton,
+  MenuItem,
+  Stack,
+  Text,
+  Tooltip,
+} from '@sanity/ui'
 import {
   type CSSProperties,
   type JSX,
@@ -69,6 +80,22 @@ function LaunchIcon(): JSX.Element {
       style={{display: 'block'}}
     >
       <path d="M11.5 7.5H6.5V18.5H17.5V13.5M14.5 5.5H19.5V10.5M19.5 5.5L11.5 13.5" />
+    </svg>
+  )
+}
+
+function EllipsisIcon(): JSX.Element {
+  return (
+    <svg
+      viewBox="0 0 25 25"
+      width="1em"
+      height="1em"
+      fill="currentColor"
+      style={{display: 'block'}}
+    >
+      <circle cx="6.5" cy="12.5" r="1.5" />
+      <circle cx="12.5" cy="12.5" r="1.5" />
+      <circle cx="18.5" cy="12.5" r="1.5" />
     </svg>
   )
 }
@@ -396,16 +423,50 @@ export function ResultRow({
           style={{flexShrink: 0, position: 'relative', zIndex: 2}}
         >
           <AggregateStatusBadge groups={groups} />
-          <Button
-            text={t('result.details')}
-            mode="ghost"
-            fontSize={1}
-            padding={2}
-            onClick={handleDetails}
-          />
-          {anyActionable && (
-            <ResolveButton acknowledged={acknowledged} disabled={leaving} onClick={trigger} />
-          )}
+          {/* Two text buttons eat half a phone screen and truncate every title - below
+              the 600px breakpoint they collapse into one overflow menu. The badge and
+              doc-state dot stay: they're the signal an editor scans the list by. */}
+          <Box display={['none', 'none', 'block']}>
+            <Flex align="center" gap={[2, 2, 3]}>
+              <Button
+                text={t('result.details')}
+                mode="ghost"
+                fontSize={1}
+                padding={2}
+                onClick={handleDetails}
+              />
+              {anyActionable && (
+                <ResolveButton acknowledged={acknowledged} disabled={leaving} onClick={trigger} />
+              )}
+            </Flex>
+          </Box>
+          <Box display={['block', 'block', 'none']}>
+            <MenuButton
+              button={
+                <Button
+                  aria-label={t('result.more-actions')}
+                  icon={EllipsisIcon}
+                  mode="bleed"
+                  fontSize={1}
+                  padding={2}
+                />
+              }
+              id={`lc-row-menu-${finding.fromId}`}
+              menu={
+                <Menu>
+                  <MenuItem text={t('result.details')} onClick={handleDetails} />
+                  {anyActionable && (
+                    <MenuItem
+                      text={acknowledged ? t('result.unresolve') : t('result.resolve')}
+                      disabled={leaving}
+                      onClick={trigger}
+                    />
+                  )}
+                </Menu>
+              }
+              popover={{portal: true, placement: 'bottom-end'}}
+            />
+          </Box>
           <DocStateDot state={finding.docState} updatedAt={finding.docStateUpdatedAt} />
         </Flex>
       </Flex>

@@ -40,6 +40,7 @@ const resources = {
   'result.finding-subtitle': 'Link in {{fieldPath}}: {{value}}',
   'result.link-count_one': '{{count}} link',
   'result.link-count_other': '{{count}} links',
+  'result.more-actions': 'More actions',
   'result.occurrences_one': '{{count}} place',
   'result.occurrences_other': '{{count}} places',
   'result.open-link-tooltip': 'Open the link in a new tab',
