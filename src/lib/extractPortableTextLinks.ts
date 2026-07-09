@@ -17,27 +17,24 @@ export interface LinkOccurrence {
 const URL_PATTERN = /^https?:\/\//i
 
 /**
- * Schema-agnostic: finds any object with a string `href` property anywhere in the
- * document tree, rather than hardcoding a specific annotation type name (e.g. `link`),
- * since custom schemas commonly name their link annotation differently.
+ * Schema-agnostic by VALUE, not by property name: any string anywhere in the document
+ * tree that looks like an http(s) URL is a link occurrence - `href` on a Portable Text
+ * annotation, a bare `url`/`website` string field, a custom link object's `externalUrl`,
+ * all caught identically. Property names vary per schema; URL-shaped values don't.
+ * The whole string must be the URL (anchored pattern) - URLs embedded inside prose
+ * strings are out of scope.
  */
 export function extractPortableTextLinks(doc: RawDoc): LinkOccurrence[] {
   const occurrences: LinkOccurrence[] = []
 
   walkDocument(doc, [], (value, path) => {
-    if (
-      value !== null &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      typeof (value as Record<string, unknown>).href === 'string' &&
-      URL_PATTERN.test((value as Record<string, unknown>).href as string)
-    ) {
+    if (typeof value === 'string' && URL_PATTERN.test(value)) {
       occurrences.push({
         fromId: doc._id,
         fromType: doc._type,
         fieldPath: formatPath(path),
         focusPath: formatFocusPath(path),
-        href: (value as Record<string, unknown>).href as string,
+        href: value,
       })
     }
   })
