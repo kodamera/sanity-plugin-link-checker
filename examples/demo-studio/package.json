@@ -1,0 +1,19 @@
+{
+  "name": "link-checker-demo-studio",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Demo studio for sanity-plugin-link-checker: fictional seeded content for screenshots and plugin development",
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev",
+    "seed": "node seed.mjs"
+  },
+  "dependencies": {
+    "@sanity/client": "^7.14.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "sanity": "^5.12.0",
+    "sanity-plugin-link-checker": "file:../..",
+    "styled-components": "^6.3.9"
+  }
+}
