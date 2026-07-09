@@ -32,6 +32,13 @@ export interface LinkCheckerPluginConfig {
    * (image/file assets, Presentation preview secrets, ...) are always skipped.
    */
   excludeTypes?: string[]
+  /**
+   * URLs to skip when checking external links. A string matches as a substring
+   * (`'linkedin.com'` skips every LinkedIn URL), a RegExp is tested against the full URL.
+   * Use for hosts that block automated checks anyway - the finding would only ever be
+   * noise.
+   */
+  excludeUrls?: (string | RegExp)[]
 }
 
 /** Publish state of the document a finding came from, at scan time. */

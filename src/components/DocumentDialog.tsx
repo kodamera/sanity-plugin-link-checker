@@ -1,5 +1,5 @@
 import {Box, Button, Dialog, Flex, Stack, Text} from '@sanity/ui'
-import type {JSX} from 'react'
+import {type JSX, useCallback, useMemo} from 'react'
 import {useSchema, useTranslation, useValuePreview} from 'sanity'
 
 import {linkCheckerLocaleNamespace} from '../i18n'
@@ -9,6 +9,7 @@ import type {ScanFinding} from '../lib/types'
 import {
   type FindingGroup,
   isActionable,
+  makeEditClickHandler,
   OpenLinkButton,
   ResolveButton,
   StatusBadgeFor,
@@ -16,15 +17,17 @@ import {
 } from './ResultRow'
 
 /**
- * One line per distinct URL/reference in the inspected document. Everything opens in a
- * NEW tab (plain anchors with target="_blank") - the dialog is the editor's working
- * context and must survive excursions to the site or the document editor.
+ * One line per distinct URL/reference in the inspected document. Document links navigate
+ * in the SAME tab - the open dialog lives in the tool's URL, so the browser back button
+ * lands right back in it. Only the external-site button (LaunchIcon) opens a new tab,
+ * since that leaves the Studio entirely.
  */
 function DialogRow({
   group,
   acknowledgedKeys,
   onToggleAcknowledged,
   editHref,
+  onOpenEdit,
   showDivider,
   showMeta,
 }: {
@@ -32,6 +35,7 @@ function DialogRow({
   acknowledgedKeys: Set<string>
   onToggleAcknowledged: (key: string) => void
   editHref: (f: ScanFinding, focus?: boolean) => string
+  onOpenEdit: (f: ScanFinding, focus?: boolean) => void
   showDivider: boolean
   /** The field-path line earns its ink when it disambiguates between several rows or
    * several occurrences - for a document's single, single-occurrence problem it just
@@ -41,13 +45,15 @@ function DialogRow({
   const {t} = useTranslation(linkCheckerLocaleNamespace)
   const {finding, keys} = group
   const {acknowledged, toggle} = useResolveToggle(keys, acknowledgedKeys, onToggleAcknowledged)
+  const handleOpen = useCallback(() => onOpenEdit(finding), [onOpenEdit, finding])
+  const handleClick = useMemo(() => makeEditClickHandler(handleOpen), [handleOpen])
 
   const value = finding.kind === 'reference' ? finding.refId : finding.href
   const placesSuffix = keys.length > 1 ? ` · ${t('result.occurrences', {count: keys.length})}` : ''
 
   return (
     <Flex
-      align="flex-start"
+      align="center"
       gap={3}
       paddingY={3}
       style={{
@@ -57,14 +63,10 @@ function DialogRow({
     >
       <Stack gap={2} flex={1} style={{minWidth: 0}}>
         {/* Full value, wrapped rather than clamped - reading the exact URL is what this
-            dialog is for. Links to the document focused at this occurrence, in a new tab. */}
+            dialog is for. Links to the document focused at this occurrence, in the same
+            tab: the dialog's URL state means the back button returns straight to it. */}
         <Text size={1}>
-          <a
-            href={editHref(finding)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{color: 'inherit'}}
-          >
+          <a href={editHref(finding)} onClick={handleClick} style={{color: 'inherit'}}>
             <span style={{wordBreak: 'break-all'}}>{value}</span>
           </a>
         </Text>
@@ -98,6 +100,7 @@ export function DocumentDialog({
   acknowledgedKeys,
   onToggleAcknowledged,
   editHref,
+  onOpenEdit,
   onClose,
 }: {
   /** Every URL/reference group of the inspected document, length >= 1. */
@@ -106,6 +109,7 @@ export function DocumentDialog({
   acknowledgedKeys: Set<string>
   onToggleAcknowledged: (key: string) => void
   editHref: (f: ScanFinding, focus?: boolean) => string
+  onOpenEdit: (f: ScanFinding, focus?: boolean) => void
   onClose: () => void
 }): JSX.Element {
   const {t} = useTranslation(linkCheckerLocaleNamespace)
@@ -120,6 +124,8 @@ export function DocumentDialog({
   const title =
     (preview.value?.title as string | undefined) ?? `${finding.fromType} (${finding.fromId})`
   const typeLabel = schemaType?.title ?? finding.fromType
+  const handleOpenDoc = useCallback(() => onOpenEdit(finding, false), [onOpenEdit, finding])
+  const handleOpenDocClick = useMemo(() => makeEditClickHandler(handleOpenDoc), [handleOpenDoc])
 
   return (
     <Dialog
@@ -144,6 +150,7 @@ export function DocumentDialog({
                 acknowledgedKeys={acknowledgedKeys}
                 onToggleAcknowledged={onToggleAcknowledged}
                 editHref={editHref}
+                onOpenEdit={onOpenEdit}
                 showDivider={index < groups.length - 1}
                 showMeta={groups.length > 1}
               />
@@ -153,8 +160,7 @@ export function DocumentDialog({
             <Button
               as="a"
               href={editHref(finding, false)}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={handleOpenDocClick}
               text={t('dialog.open-document')}
               tone="primary"
               mode="ghost"

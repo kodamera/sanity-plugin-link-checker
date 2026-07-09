@@ -14,7 +14,7 @@ const resources = {
   'banner.previous-results': 'Visar tidigare skanningsresultat - ny skanning pågår.',
   'banner.verifying-links':
     'Verifierar externa länkar på serversidan... resultaten visas här när kontrollen är klar (upp till ~90 sekunder).',
-  'dialog.open-document': 'Öppna dokumentet i en ny flik',
+  'dialog.open-document': 'Öppna dokumentet',
   'empty.active-broken-references': 'Inga aktiva brutna referenser.',
   'empty.broken-links': 'Inga brutna länkar.',
   'empty.no-scan': 'Ingen skanning har körts än.',

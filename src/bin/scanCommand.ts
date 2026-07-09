@@ -29,6 +29,8 @@ Options:
   --host-delay <ms>     Min ms between two requests to the same host (default 1000)
   --exclude-types <t>   Comma-separated document types to skip, in addition to the
                         always-skipped "sanity.*" system types (e.g. "siteSettings,redirect")
+  --exclude-urls <s>    Comma-separated URL substrings to skip when checking external
+                        links (e.g. "linkedin.com" for hosts that block automated checks)
   --fail-on-findings    Exit with code 1 if any broken links/references are found (for CI)
   --help                Show this help
 
@@ -50,6 +52,7 @@ export async function runScanCommand(argv: string[]): Promise<void> {
       timeout: {type: 'string'},
       'host-delay': {type: 'string'},
       'exclude-types': {type: 'string'},
+      'exclude-urls': {type: 'string'},
       'fail-on-findings': {type: 'boolean', default: false},
       help: {type: 'boolean', default: false},
     },
@@ -88,6 +91,10 @@ export async function runScanCommand(argv: string[]): Promise<void> {
       excludeTypes: values['exclude-types']
         ?.split(',')
         .map((t) => t.trim())
+        .filter(Boolean),
+      excludeUrls: values['exclude-urls']
+        ?.split(',')
+        .map((u) => u.trim())
         .filter(Boolean),
     },
     'cli',

@@ -70,10 +70,20 @@ function withHostPacing(
 
 export async function scanExternalLinks(
   docs: RawDoc[],
-  config: Pick<LinkCheckerPluginConfig, 'concurrency' | 'timeoutMs' | 'hostDelayMs' | 'checkUrl'>,
+  config: Pick<
+    LinkCheckerPluginConfig,
+    'concurrency' | 'timeoutMs' | 'hostDelayMs' | 'checkUrl' | 'excludeUrls'
+  >,
   onProgress?: (done: number, total: number) => void,
 ): Promise<{findings: BrokenLink[]; urlsChecked: number}> {
-  const occurrences: LinkOccurrence[] = docs.flatMap((doc) => extractPortableTextLinks(doc))
+  const excludeUrls = config.excludeUrls ?? []
+  const isExcluded = (url: string) =>
+    excludeUrls.some((pattern) =>
+      typeof pattern === 'string' ? url.includes(pattern) : pattern.test(url),
+    )
+  const occurrences: LinkOccurrence[] = docs
+    .flatMap((doc) => extractPortableTextLinks(doc))
+    .filter((occ) => !isExcluded(occ.href))
 
   const uniqueUrls = interleaveByHost(Array.from(new Set(occurrences.map((o) => o.href))))
   if (uniqueUrls.length === 0) {

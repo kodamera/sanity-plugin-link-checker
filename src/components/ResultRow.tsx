@@ -227,7 +227,9 @@ function AggregateStatusBadge({groups}: {groups: FindingGroup[]}): JSX.Element {
 
 /** Lets the browser handle modifier/middle clicks natively (open in new tab/window),
  * hijacking only a plain left-click for client-side navigation. */
-function makeEditClickHandler(onOpen: () => void) {
+export function makeEditClickHandler(
+  onOpen: () => void,
+): (event: MouseEvent<HTMLAnchorElement>) => void {
   return (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
       return

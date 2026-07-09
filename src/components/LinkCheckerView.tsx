@@ -458,6 +458,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
             acknowledgedKeys={acknowledgedKeys}
             onToggleAcknowledged={handleToggleAcknowledged}
             editHref={editHref}
+            onOpenEdit={handleOpenEdit}
             onClose={handleCloseDetails}
           />
         )}

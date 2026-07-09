@@ -14,7 +14,7 @@ const resources = {
   'banner.previous-results': 'Showing previous scan results - new scan in progress.',
   'banner.verifying-links':
     'Verifying external links server-side... results appear here when the check completes (up to ~90 seconds).',
-  'dialog.open-document': 'Open document in a new tab',
+  'dialog.open-document': 'Open document',
   'empty.active-broken-references': 'No active broken references.',
   'empty.broken-links': 'No broken links.',
   'empty.no-scan': 'No scan has been run yet.',
