@@ -213,6 +213,42 @@ above) get real status codes.
 
 ![A browser-side scan: reference checks are exact, external links show as unverifiable with a banner explaining CORS](assets/screenshot-browser-scan.jpg)
 
+### Adding or overriding a language
+
+The plugin ships English (`en-US`) and Swedish (`sv-SE`). Rather than a config option
+on `linkChecker()`, translations use Sanity's own `i18n.bundles` mechanism — register
+another bundle for the same namespace in your `sanity.config.ts` and it merges over
+(or adds to) the built-in strings automatically, no plugin-side setting needed:
+
+```ts
+import {defineConfig} from 'sanity'
+import {defineLocaleResourceBundle} from 'sanity'
+import {linkChecker, linkCheckerLocaleNamespace} from 'sanity-plugin-link-checker'
+
+export default defineConfig({
+  plugins: [linkChecker()],
+  i18n: {
+    bundles: [
+      defineLocaleResourceBundle({
+        locale: 'de-DE',
+        namespace: linkCheckerLocaleNamespace,
+        resources: {'result.resolve': 'Auflösen', 'result.details': 'Details'},
+        // Bundles merge with overwrite: true by default, so a partial resource
+        // object (like this one) fills in just the keys you provide — everything
+        // else falls back to the plugin's built-in en-US strings.
+      }),
+    ],
+  },
+})
+```
+
+This also works to correct or restyle an existing `en-US`/`sv-SE` string, or add a
+locale this plugin doesn't ship at all — as long as it's a locale your Studio itself
+supports (see [Sanity's locale plugins](https://www.sanity.io/docs/studio/internationalization)
+for the full list; translating this plugin into a language the Studio's own chrome
+doesn't speak yields a half-translated UI). See `src/i18n/resources.ts` for every
+translatable key.
+
 ### How results are stored
 
 - Results are stored in the dataset as a single, always-overwritten document (`_id: 'link-checker-report'`, `_type: 'linkCheckerReport'`).
