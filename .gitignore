@@ -64,3 +64,6 @@ plans
 
 # Sanity dev runtime
 .sanity
+
+# Sanity function build output
+functions/**/.build
