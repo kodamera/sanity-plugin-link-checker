@@ -361,8 +361,7 @@ export function ResultRow({
 
   return (
     // Bleed pattern (same as Studio pane items): the hover background extends 8px past the
-    // content on both sides (negative margin + matching inner padding), while the divider
-    // sits on the innermost element so it stays exactly content-width. Content alignment
+    // content on both sides (negative margin + matching inner padding). Content alignment
     // with the rest of the page is unchanged.
     <Box
       className="lc-row"
@@ -373,10 +372,13 @@ export function ResultRow({
         ...leavingStyle(leaving),
       }}
     >
+      {/* Divider at reduced strength - separation without the grid feel of full-strength
+          hairlines. Sits on the inner element so it spans content width, not the bleed. */}
       <Box
-        paddingY={3}
         style={{
-          borderBottom: showDivider ? '1px solid var(--card-border-color)' : undefined,
+          borderBottom: showDivider
+            ? '1px solid color-mix(in srgb, var(--card-border-color) 60%, transparent)'
+            : undefined,
         }}
       >
         <Flex align="center" gap={3} style={{position: 'relative', cursor: 'pointer'}}>
