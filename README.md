@@ -1,20 +1,9 @@
-<div align="center">
-  <table>
-    <tr>
-      <td align="center" width="420">
-        <br />
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
-          <img src="assets/logo.png" alt="sanity-plugin-link-checker" width="200" />
-        </picture>
-        <br />
-        <sub>Built by <a href="https://www.kodamera.se">Kodamera</a></sub>
-        <br />
-        <br />
-      </td>
-    </tr>
-  </table>
-</div>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
+  <img src="assets/logo.png" alt="sanity-plugin-link-checker" width="160" />
+</picture>
+
+<sub>Built by <a href="https://www.kodamera.se">Kodamera</a></sub>
 
 # sanity-plugin-link-checker
 
