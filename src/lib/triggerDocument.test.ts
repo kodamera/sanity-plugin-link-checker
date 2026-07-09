@@ -36,4 +36,28 @@ describe('scan config serialization', () => {
     expect(JSON.parse(JSON.stringify(serialized))).toEqual(serialized)
     expect('checkUrl' in serialized).toBe(false)
   })
+
+  it('skips an invalid pattern instead of throwing', () => {
+    expect(() =>
+      deserializeScanConfig({excludeUrlPatterns: [{source: '(', flags: ''}]}),
+    ).not.toThrow()
+    const result = deserializeScanConfig({excludeUrlPatterns: [{source: '(', flags: ''}]})
+    expect(result.excludeUrls).toEqual([])
+  })
+
+  it('skips an oversized pattern source', () => {
+    const result = deserializeScanConfig({
+      excludeUrlPatterns: [{source: 'a'.repeat(201), flags: ''}],
+    })
+    expect(result.excludeUrls).toEqual([])
+  })
+
+  it('caps the number of patterns deserialized', () => {
+    const excludeUrlPatterns = Array.from({length: 51}, (_, i) => ({
+      source: `pattern-${i}`,
+      flags: '',
+    }))
+    const result = deserializeScanConfig({excludeUrlPatterns})
+    expect(result.excludeUrls).toHaveLength(50)
+  })
 })

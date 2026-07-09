@@ -42,6 +42,25 @@ export function serializeScanConfig(config: LinkCheckerPluginConfig): Serialized
   }
 }
 
+/**
+ * Bounds for RegExp patterns read back from the trigger document. The trigger is
+ * dataset content - anyone with write access can edit it - so patterns are treated
+ * as semi-trusted: a throwing or pathological (catastrophic-backtracking) pattern
+ * must not crash or stall the Function's scan. Oversized or invalid patterns are
+ * skipped, not fatal.
+ */
+const MAX_URL_PATTERNS = 50
+const MAX_PATTERN_SOURCE_LENGTH = 200
+
+function safePattern(p: {source: string; flags: string}): RegExp | null {
+  if (p.source.length > MAX_PATTERN_SOURCE_LENGTH) return null
+  try {
+    return new RegExp(p.source, p.flags)
+  } catch {
+    return null
+  }
+}
+
 export function deserializeScanConfig(
   raw: SerializedScanConfig | null | undefined,
 ): LinkCheckerPluginConfig {
@@ -54,7 +73,10 @@ export function deserializeScanConfig(
     excludeTypes: raw.excludeTypes ?? undefined,
     excludeUrls: [
       ...(raw.excludeUrls ?? []),
-      ...(raw.excludeUrlPatterns ?? []).map((p) => new RegExp(p.source, p.flags)),
+      ...(raw.excludeUrlPatterns ?? [])
+        .slice(0, MAX_URL_PATTERNS)
+        .map(safePattern)
+        .filter((p): p is RegExp => p !== null),
     ],
   }
 }
