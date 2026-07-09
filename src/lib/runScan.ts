@@ -13,6 +13,8 @@ interface RawDoc {
   [key: string]: unknown
 }
 
+export const PAGE_SIZE = 500
+
 /**
  * Excludes system docs (`_.**`, e.g. `_.schemas...`) but keeps drafts and release versions
  * (`versions.<releaseId>.<id>`), since a dangling reference to/from either is still real.
@@ -21,8 +23,37 @@ interface RawDoc {
  * `{href: ...}`/`{refId: ...}`, and without this exclusion those would be rediscovered as
  * new findings on every subsequent scan (self-contamination, roughly doubling the count
  * each generation).
+ *
+ * Paginated by _id cursor: bounds each request's payload so datasets with tens of
+ * thousands of documents don't hit response-size limits or hold one giant response
+ * in memory at once. _id is unique and totally ordered, so `_id > $lastId` with
+ * `order(_id asc)` visits every document exactly once.
  */
-const ALL_DOCS_QUERY = `*[!(_id in path("_.**")) && _type != $reportType && _type != $triggerType]`
+const PAGE_QUERY = `*[!(_id in path("_.**")) && _type != $reportType && _type != $triggerType && _id > $lastId] | order(_id asc) [0...${PAGE_SIZE}]`
+
+async function fetchAllDocs(
+  client: SanityClient,
+  onProgress?: (message: string, done: number, total: number) => void,
+): Promise<RawDoc[]> {
+  const docs: RawDoc[] = []
+  let lastId = ''
+  for (;;) {
+    // eslint-disable-next-line no-await-in-loop
+    const page = await client.fetch<RawDoc[]>(PAGE_QUERY, {
+      reportType: REPORT_DOC_TYPE,
+      triggerType: TRIGGER_DOC_TYPE,
+      lastId,
+    })
+    docs.push(...page)
+    onProgress?.(
+      'Fetching documents',
+      docs.length,
+      docs.length + (page.length === PAGE_SIZE ? 1 : 0),
+    )
+    if (page.length < PAGE_SIZE) return docs
+    lastId = page[page.length - 1]._id
+  }
+}
 
 /**
  * A document with an unpublished draft (or a release version) appears as a second entry in
@@ -88,11 +119,7 @@ export async function runScan(
   source: ScanResult['source'],
   onProgress?: (message: string, done: number, total: number) => void,
 ): Promise<ScanResult> {
-  onProgress?.('Fetching documents', 0, 1)
-  const docs = await client.fetch<RawDoc[]>(ALL_DOCS_QUERY, {
-    reportType: REPORT_DOC_TYPE,
-    triggerType: TRIGGER_DOC_TYPE,
-  })
+  const docs = await fetchAllDocs(client, onProgress)
 
   onProgress?.('Checking references', 0, 1)
   const brokenRefs = await scanInternalRefs(client, docs)
