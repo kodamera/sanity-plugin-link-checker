@@ -29,6 +29,18 @@ export function ScanProgressBanner({
   )
 }
 
+export function PreviousResultsBanner(): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
+
+  return (
+    <Card padding={4} radius={2} shadow={0} border tone="transparent">
+      <Text size={1} muted>
+        {t('banner.previous-results')}
+      </Text>
+    </Card>
+  )
+}
+
 export function AwaitingFunctionBanner(): JSX.Element {
   const {t} = useTranslation(linkCheckerLocaleNamespace)
 

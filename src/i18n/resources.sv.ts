@@ -10,6 +10,7 @@ const resources = {
   'banner.cors':
     'Körs utan en anpassad <Code>checkUrl</Code>: de flesta resultat med "Går ej att verifiera" nedan beror på att webbläsaren blockerar statusläsning över domängränser (CORS), inte nödvändigtvis på döda länkar. För korrekta resultat, distribuera en Document Function (<Command>npx sanity-plugin-link-checker init-function</Command>) så att "Kör skanning" startar en automatiskt, eller kör <Cli>npx sanity-plugin-link-checker</Cli> manuellt - se pluginets README.',
   'banner.dismiss': 'Stäng',
+  'banner.previous-results': 'Visar tidigare skanningsresultat - ny skanning pågår.',
   'banner.verifying-links':
     'Verifierar externa länkar på serversidan... resultaten visas här när kontrollen är klar (upp till ~90 sekunder).',
   'doc-state.draft': 'Endast utkast',
