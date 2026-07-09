@@ -63,7 +63,7 @@ export function ScanSummaryCard({
           <Heading size={1}>
             {issueCount === 0
               ? t('summary.no-issues')
-              : t('summary.issue-count', {count: issueCount})}
+              : t('summary.documents-with-issues', {count: issueCount})}
           </Heading>
           {issueBreakdown && (
             <Text size={1} muted>

@@ -30,6 +30,28 @@ import {TabbedFindings} from './TabbedFindings'
 const API_VERSION = '2024-01-01'
 const AWAIT_FUNCTION_TIMEOUT_MS = 90_000
 
+/**
+ * All headline numbers speak the same language as the result list: the heading counts
+ * problem DOCUMENTS (like the tabs), the breakdown counts DISTINCT broken links/references
+ * (like the expanded sub-rows) - never raw per-field occurrences.
+ */
+function summarizeHeadline(
+  activeBrokenRefs: ScanFinding[],
+  activeBrokenLinks: ScanFinding[],
+  t: (key: string, values?: Record<string, number>) => string,
+): {issueCount: number; issueBreakdown: string | null} {
+  const groupKeyOf = (f: ScanFinding) =>
+    `${f.kind}:${f.fromId}:${f.kind === 'reference' ? f.refId : f.href}`
+  const issueCount = new Set([...activeBrokenRefs, ...activeBrokenLinks].map((f) => f.fromId)).size
+  const distinctBrokenRefs = new Set(activeBrokenRefs.map(groupKeyOf)).size
+  const distinctBrokenLinks = new Set(activeBrokenLinks.map(groupKeyOf)).size
+  const breakdownParts = [
+    distinctBrokenLinks > 0 ? t('findings.broken-links', {count: distinctBrokenLinks}) : null,
+    distinctBrokenRefs > 0 ? t('findings.broken-references', {count: distinctBrokenRefs}) : null,
+  ].filter(Boolean)
+  return {issueCount, issueBreakdown: breakdownParts.length > 0 ? breakdownParts.join(' · ') : null}
+}
+
 function DatasetName({children}: {children?: ReactNode}): JSX.Element {
   return (
     <strong>
@@ -216,13 +238,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
     [linkFindings],
   )
 
-  const issueCount = activeBrokenRefs.length + activeBrokenLinks.length
-  // Only spell out the split when there's an actual mix to disambiguate - with a single
-  // category active it would just repeat the heading's count in different words.
-  const issueBreakdown =
-    activeBrokenRefs.length > 0 && activeBrokenLinks.length > 0
-      ? `${t('findings.broken-references', {count: activeBrokenRefs.length})} · ${t('findings.broken-links', {count: activeBrokenLinks.length})}`
-      : null
+  const {issueCount, issueBreakdown} = summarizeHeadline(activeBrokenRefs, activeBrokenLinks, t)
   // Hold external-link display while a Function may be about to replace them: only a
   // browser-sourced result is provisional, and only when no custom checkUrl is configured
   // (a proxy-backed browser scan IS accurate and should show immediately).

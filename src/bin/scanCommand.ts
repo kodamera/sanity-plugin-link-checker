@@ -102,14 +102,15 @@ export async function runScanCommand(argv: string[]): Promise<void> {
     await writeFile(outPath, JSON.stringify(result, null, 2))
   }
 
-  const {brokenRefs, brokenLinks, unverifiableLinks, issueCount} = summarizeResult(result)
+  const {brokenRefs, brokenLinks, unverifiableLinks, documentsWithIssues, issueCount} =
+    summarizeResult(result)
   console.log(
     `Scanned ${result.documentsScanned} documents, checked ${result.urlsChecked} external URLs.`,
   )
   console.log(
     `Found ${brokenRefs} broken reference(s), ${brokenLinks} broken link(s)${
-      unverifiableLinks > 0 ? `, ${unverifiableLinks} unverifiable link(s).` : '.'
-    }`,
+      unverifiableLinks > 0 ? `, ${unverifiableLinks} unverifiable link(s)` : ''
+    } across ${documentsWithIssues} document(s).`,
   )
   console.log(`Report saved to the dataset - the Studio's Link Checker tool will pick it up.`)
   if (outPath) console.log(`Also wrote a local copy to ${outPath}`)

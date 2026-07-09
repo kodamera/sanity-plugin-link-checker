@@ -38,6 +38,7 @@ describe('summarizeResult', () => {
       brokenRefs: 0,
       brokenLinks: 0,
       unverifiableLinks: 0,
+      documentsWithIssues: 0,
       issueCount: 0,
     })
   })
@@ -81,6 +82,44 @@ describe('summarizeResult', () => {
       brokenRefs: 1,
       brokenLinks: 1,
       unverifiableLinks: 1,
+      documentsWithIssues: 2,
+      issueCount: 2,
+    })
+  })
+
+  it('counts the same URL at several field paths in one document as one problem', () => {
+    const result = makeResult([
+      {
+        kind: 'link',
+        fromId: 'doc1',
+        fromType: 'page',
+        fieldPath: 'body[0]',
+        href: 'https://broken.example.com',
+        result: {status: 'broken', httpStatus: 404},
+      },
+      {
+        kind: 'link',
+        fromId: 'doc1',
+        fromType: 'page',
+        fieldPath: 'body[7]',
+        href: 'https://broken.example.com',
+        result: {status: 'broken', httpStatus: 404},
+      },
+      {
+        kind: 'link',
+        fromId: 'doc1',
+        fromType: 'page',
+        fieldPath: 'footer[0]',
+        href: 'https://also-broken.example.com',
+        result: {status: 'broken', httpStatus: 410},
+      },
+    ])
+
+    expect(summarizeResult(result)).toEqual({
+      brokenRefs: 0,
+      brokenLinks: 2,
+      unverifiableLinks: 0,
+      documentsWithIssues: 1,
       issueCount: 2,
     })
   })
@@ -92,6 +131,7 @@ describe('summarizeResult', () => {
       brokenRefs: 0,
       brokenLinks: 0,
       unverifiableLinks: 0,
+      documentsWithIssues: 0,
       issueCount: 0,
     })
   })
