@@ -58,7 +58,6 @@
     "sanity-plugin-link-checker": "dist/bin/cli.js"
   },
   "files": [
-    "assets",
     "dist"
   ],
   "browserslist": "extends @sanity/browserslist-config",

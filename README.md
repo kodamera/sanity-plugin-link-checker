@@ -14,7 +14,7 @@ Studio tool, with one click to jump straight to the offending document. Works ou
 box for internal reference checks; deploy the included Document Function once for fully
 accurate external-link results too.
 
-![Screenshot of the Link Checker tool](assets/screenshot.png)
+![The Link Checker tool showing broken links and dangling references](assets/screenshot-results.jpg)
 
 ## Features
 
@@ -27,6 +27,19 @@ accurate external-link results too.
 - **CI-ready CLI** — fail a build when broken links are found, export the report as JSON.
 - **Zero schema pollution** — the report document is not a registered schema type and never shows up in your content lists.
 - **Extensible** — plug in your own URL checker (e.g. a proxy), or use the React-free scanning core in your own scripts and Functions.
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="assets/screenshot-details-dialog.jpg" alt="Details dialog listing each broken URL in a document with status codes and per-URL resolve" />
+      <br /><sub>Per-document details: every broken URL with its exact status code</sub>
+    </td>
+    <td width="50%">
+      <img src="assets/screenshot-all-clear.jpg" alt="A clean scan showing the green No issues found summary" />
+      <br /><sub>A clean scan - nothing to fix</sub>
+    </td>
+  </tr>
+</table>
 
 ## Why check links in the CMS instead of crawling the site?
 
@@ -197,6 +210,8 @@ So external checks run straight from the Studio browser tab land on `unverifiabl
 `timeout`) rather than a clean `ok`/`broken`. This isn't a bug — it's what the browser
 allows. Node has no such restriction, which is exactly why the Function (and the CLI
 above) get real status codes.
+
+![A browser-side scan: reference checks are exact, external links show as unverifiable with a banner explaining CORS](assets/screenshot-browser-scan.jpg)
 
 ### How results are stored
 
