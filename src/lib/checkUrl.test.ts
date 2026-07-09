@@ -25,6 +25,24 @@ describe('checkUrl', () => {
     )
   })
 
+  it('uses browser-like headers for Node checks', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(mockResponse(404))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await checkUrl('https://example.com/missing')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://example.com/missing',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          accept: expect.stringContaining('text/html'),
+          'user-agent': expect.stringContaining('sanity-plugin-link-checker'),
+        }),
+        method: 'HEAD',
+      }),
+    )
+  })
+
   it('falls back to GET when HEAD returns 405', async () => {
     const fetchMock = vi
       .fn()

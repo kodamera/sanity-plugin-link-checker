@@ -1,16 +1,23 @@
 import type {UrlCheckResult} from './types'
 
+// Node has no window global and no CORS concept at all - a thrown fetch error there is a
+// genuine network failure (DNS, connection refused, TLS), never an ambiguous CORS block.
+const isNode = typeof window === 'undefined'
+
+const NODE_REQUEST_HEADERS = {
+  accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'user-agent':
+    'Mozilla/5.0 (compatible; sanity-plugin-link-checker/1.0; +https://github.com/kodamera/sanity-plugin-link-checker)',
+}
+
 async function attemptFetch(url: string, method: 'HEAD' | 'GET', timeoutMs: number) {
   return fetch(url, {
+    headers: isNode ? NODE_REQUEST_HEADERS : undefined,
     method,
     redirect: 'follow',
     signal: AbortSignal.timeout(timeoutMs),
   })
 }
-
-// Node has no window global and no CORS concept at all - a thrown fetch error there is a
-// genuine network failure (DNS, connection refused, TLS), never an ambiguous CORS block.
-const isNode = typeof window === 'undefined'
 
 /**
  * Checks a single external URL. Browser CORS means a cross-origin response without an
