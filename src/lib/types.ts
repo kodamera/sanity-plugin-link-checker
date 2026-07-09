@@ -26,6 +26,11 @@ export interface LinkCheckerPluginConfig {
 /** Publish state of the document a finding came from, at scan time. */
 export type DocumentState = 'draft' | 'published' | 'edited'
 
+export interface DocumentStateUpdatedAt {
+  draft?: string
+  published?: string
+}
+
 interface BaseFinding {
   fromId: string
   fromType: string
@@ -35,6 +40,7 @@ interface BaseFinding {
    * the document scrolled to the offending field. Absent for older cached reports. */
   focusPath?: string
   docState?: DocumentState
+  docStateUpdatedAt?: DocumentStateUpdatedAt
 }
 
 export interface BrokenReference extends BaseFinding {

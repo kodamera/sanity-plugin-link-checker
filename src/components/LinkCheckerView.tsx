@@ -7,7 +7,7 @@ import {linkCheckerLocaleNamespace} from '../i18n'
 import {loadCachedResult, saveCachedResult} from '../lib/cache'
 import {buildEditPath} from '../lib/editRoute'
 import {readReport, REPORT_DOC_ID, toggleAcknowledged, writeReport} from '../lib/reportDocument'
-import {resolveTitles} from '../lib/resolveTitles'
+import {type PreviewDocumentValue, resolvePreviewDocuments} from '../lib/resolvePreviewDocuments'
 import {runScan} from '../lib/runScan'
 import {writeTrigger} from '../lib/triggerDocument'
 import {
@@ -70,7 +70,9 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   const [result, setResult] = useState<ScanResult | null>(() =>
     projectId && dataset ? loadCachedResult(projectId, dataset) : null,
   )
-  const [titles, setTitles] = useState<Map<string, string>>(new Map())
+  const [previewDocuments, setPreviewDocuments] = useState<Map<string, PreviewDocumentValue>>(
+    new Map(),
+  )
   const [scanning, setScanning] = useState(false)
   const [progress, setProgress] = useState<{message: string; done: number; total: number} | null>(
     null,
@@ -132,7 +134,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   useEffect(() => {
     if (!result) return
     const ids = Array.from(new Set(result.findings.map((f) => f.fromId)))
-    resolveTitles(client, ids).then(setTitles)
+    resolvePreviewDocuments(client, ids).then(setPreviewDocuments)
   }, [result, client])
 
   const handleRunScan = useCallback(async () => {
@@ -340,7 +342,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                   items: resolvedBrokenRefs,
                 },
               ]}
-              titles={titles}
+              previewDocuments={previewDocuments}
               acknowledgedKeys={acknowledgedKeys}
               onToggleAcknowledged={handleToggleAcknowledged}
               onOpenEdit={handleOpenEdit}
@@ -362,7 +364,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
             ) : (
               <LinkResultsTabs
                 findings={linkFindings}
-                titles={titles}
+                previewDocuments={previewDocuments}
                 acknowledgedKeys={acknowledgedKeys}
                 onToggleAcknowledged={handleToggleAcknowledged}
                 editHref={editHref}
