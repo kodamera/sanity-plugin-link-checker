@@ -343,24 +343,24 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
         {/* Column on narrow screens, not a row that hopes flex-wrap kicks in at the right
             threshold - the button unconditionally sits below the title instead of risking
             getting clipped by a wrap that doesn't trigger. */}
-        <Flex direction={['column', 'column', 'row']} justify="space-between" gap={4}>
-          <Stack gap={4} style={{minWidth: 0}}>
-            <Stack gap={3}>
-              <Heading size={[2, 2, 3]}>{t('tool.title')}</Heading>
-              {dataset && (
-                <Text size={1} muted>
-                  <Translate
-                    t={t}
-                    i18nKey="scan.dataset-note"
-                    values={{dataset}}
-                    components={{Strong: DatasetName}}
-                  />
-                </Text>
-              )}
-            </Stack>
-            {!result && (
+        {/* align flex-start: the default (stretch) makes the button grow to whatever
+            height the title column happens to have. */}
+        <Flex
+          direction={['column', 'column', 'row']}
+          justify="space-between"
+          align={['stretch', 'stretch', 'flex-start']}
+          gap={4}
+        >
+          <Stack gap={3} style={{minWidth: 0}}>
+            <Heading size={[2, 2, 3]}>{t('tool.title')}</Heading>
+            {dataset && (
               <Text size={1} muted>
-                {t('empty.no-scan')}
+                <Translate
+                  t={t}
+                  i18nKey="scan.dataset-note"
+                  values={{dataset}}
+                  components={{Strong: DatasetName}}
+                />
               </Text>
             )}
           </Stack>
@@ -371,6 +371,12 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
             onClick={handleRunScan}
           />
         </Flex>
+
+        {!result && (
+          <Text size={1} muted>
+            {t('empty.no-scan')}
+          </Text>
+        )}
 
         {scanning && progress && (
           <ScanProgressBanner
