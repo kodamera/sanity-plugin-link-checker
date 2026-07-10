@@ -123,6 +123,7 @@ function describeLinkStatus(
   }
 
   if (result.reason === 'malformed-url') return t('status.malformed-url')
+  if (result.reason === 'missing-protocol') return t('status.missing-protocol')
   if (result.reason === 'timeout') return t('status.server-did-not-respond')
   if (result.reason === 'network') return t('status.could-not-connect')
   return httpStatusDescription(result.httpStatus, t)
@@ -169,6 +170,16 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
       <StatusTooltip description={description}>
         <Badge tone="critical" fontSize={1}>
           {t('badge.malformed-url')}
+        </Badge>
+      </StatusTooltip>
+    )
+  }
+
+  if (result.reason === 'missing-protocol') {
+    return (
+      <StatusTooltip description={description}>
+        <Badge tone="critical" fontSize={1}>
+          {t('badge.missing-protocol')}
         </Badge>
       </StatusTooltip>
     )
