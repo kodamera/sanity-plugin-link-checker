@@ -26,7 +26,7 @@ export function ReferenceStatusBadge(): JSX.Element {
 
   return (
     <StatusTooltip description={t('status.points-to-deleted-document')}>
-      <Badge tone="critical" fontSize={0}>
+      <Badge tone="critical" fontSize={1}>
         {t('badge.dangling-reference')}
       </Badge>
     </StatusTooltip>
