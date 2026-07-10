@@ -90,8 +90,6 @@ const resources = {
   'tabs.active': 'Aktiva',
   'tabs.broken': 'Brutna',
   'tabs.ok': 'OK',
-  'tabs.ok-truncated-tooltip':
-    '{{count}} fler fungerande länkar hittades men lagrades inte, för att hålla rapporten liten.',
   'tabs.resolved': 'Lösta',
   'tabs.unverifiable': 'Går ej att verifiera',
   'tool.title': 'Länkkontroll',

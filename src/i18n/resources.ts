@@ -90,8 +90,6 @@ const resources = {
   'tabs.active': 'Active',
   'tabs.broken': 'Broken',
   'tabs.ok': 'OK',
-  'tabs.ok-truncated-tooltip':
-    '{{count}} more working links were found but not stored, to keep the report small.',
   'tabs.resolved': 'Resolved',
   'tabs.unverifiable': 'Unverifiable',
   'tool.title': 'Link Checker',
