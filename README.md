@@ -293,8 +293,9 @@ This also works to correct or restyle an existing `en-US`/`sv-SE` string, or add
 locale this plugin doesn't ship at all — as long as it's a locale your Studio itself
 supports (see [Sanity's locale plugins](https://www.sanity.io/docs/studio/internationalization)
 for the full list; translating this plugin into a language the Studio's own chrome
-doesn't speak yields a half-translated UI). See `src/i18n/resources.ts` for every
-translatable key.
+doesn't speak yields a half-translated UI). See
+[`src/i18n/resources.ts`](src/i18n/resources.ts) for every translatable key (English), or
+[`src/i18n/resources.sv.ts`](src/i18n/resources.sv.ts) for a full second-locale example.
 
 ### How results are stored
 
