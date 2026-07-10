@@ -148,11 +148,21 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   )
 
   // Which document's Details dialog is open lives in the tool's router state
-  // (/doc/:inspectDocId) rather than useState - refresh restores the dialog, the browser
-  // back button closes it, and the URL is shareable with a teammate.
-  const inspectDocId = (router.state as {inspectDocId?: string}).inspectDocId
-  const handleOpenDetails = useCallback(
-    (docId: string) => router.navigate({inspectDocId: docId}),
+  // (/doc/:inspectDocId/:inspectKind) rather than useState - refresh restores the dialog,
+  // the browser back button closes it, and the URL is shareable with a teammate.
+  // inspectKind scopes groupDocFindings to the section Details was opened from (see its own
+  // doc comment) - a document can have both a broken reference and fine links, and Details
+  // must show what was actually clicked on, not just the worst problem anywhere on the doc.
+  const {inspectDocId, inspectKind} = router.state as {
+    inspectDocId?: string
+    inspectKind?: ScanFinding['kind']
+  }
+  const handleOpenLinkDetails = useCallback(
+    (docId: string) => router.navigate({inspectDocId: docId, inspectKind: 'link'}),
+    [router],
+  )
+  const handleOpenRefDetails = useCallback(
+    (docId: string) => router.navigate({inspectDocId: docId, inspectKind: 'reference'}),
     [router],
   )
   const handleCloseDetails = useCallback(() => router.navigate({}), [router])
@@ -223,8 +233,11 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   )
 
   const inspectedGroups = useMemo(
-    () => (inspectDocId && result ? groupDocFindings(result.findings, inspectDocId) : []),
-    [inspectDocId, result],
+    () =>
+      inspectDocId && inspectKind && result
+        ? groupDocFindings(result.findings, inspectDocId, inspectKind)
+        : [],
+    [inspectDocId, inspectKind, result],
   )
   // Hold external-link display while a Function may be about to replace them: only a
   // browser-sourced result is provisional, and only when no custom checkUrl is configured
@@ -471,7 +484,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                     acknowledgedKeys={acknowledgedKeys}
                     onToggleAcknowledged={handleToggleAcknowledged}
                     onOpenEdit={handleOpenEdit}
-                    onOpenDetails={handleOpenDetails}
+                    onOpenDetails={handleOpenRefDetails}
                     editHref={editHref}
                   />
                 </Stack>
@@ -499,7 +512,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                       onToggleAcknowledged={handleToggleAcknowledged}
                       editHref={editHref}
                       onOpenEdit={handleOpenEdit}
-                      onOpenDetails={handleOpenDetails}
+                      onOpenDetails={handleOpenLinkDetails}
                       okFindingsTruncated={result?.okFindingsTruncated}
                     />
                   )}
