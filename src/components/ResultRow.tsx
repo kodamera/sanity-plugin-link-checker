@@ -150,7 +150,7 @@ export function OpenLinkButton({href}: {href: string}): JSX.Element {
         rel="noopener noreferrer"
         aria-label={t('result.open-link-tooltip')}
         icon={LaunchIcon}
-        mode="ghost"
+        mode="bleed"
         fontSize={1}
         padding={2}
       />
@@ -210,23 +210,60 @@ export function isActionable(finding: ScanFinding, acknowledged: boolean): boole
   return finding.kind === 'reference' || finding.result.status !== 'ok' || acknowledged
 }
 
-const CATEGORY_BADGE: Record<
-  UrlCheckResult['status'],
-  {labelKey: string; tone: 'critical' | 'default' | 'positive'}
-> = {
-  broken: {labelKey: 'badge.broken', tone: 'critical'},
-  unverifiable: {labelKey: 'badge.unverifiable', tone: 'default'},
-  ok: {labelKey: 'badge.ok', tone: 'positive'},
+// Concrete badges stay legible up to this many distinct results stacked side by side;
+// beyond it the overflow collapses into a single "+N" chip rather than a wall of pills.
+const MAX_STACKED_BADGES = 2
+
+function resultIdentity(r: UrlCheckResult): string {
+  return `${r.status}:${r.httpStatus ?? ''}:${r.reason ?? ''}`
+}
+
+/**
+ * Up to MAX_STACKED_BADGES concrete badges (real codes, e.g. 429/404), overlapped like an
+ * avatar stack at rest and spread apart on hover/focus so each is independently readable
+ * and keeps its own tooltip - same idea as Sanity's own overlapping draft/published dots,
+ * just for an open-ended set of values instead of two fixed ones. Devices with no hover
+ * (touch) get the spread-out layout directly via the `lc-badge-stack` CSS in LinkCheckerView
+ * - there's nothing to reveal on hover if hover doesn't exist.
+ */
+function StackedStatusBadges({results}: {results: UrlCheckResult[]}): JSX.Element {
+  const {t} = useTranslation(linkCheckerLocaleNamespace)
+  const distinct = Array.from(new Map(results.map((r) => [resultIdentity(r), r])).values())
+  const shown = distinct.slice(0, MAX_STACKED_BADGES)
+  const overflow = distinct.length - shown.length
+
+  return (
+    <span className="lc-badge-stack">
+      {shown.map((result) => (
+        <span className="lc-badge-stack-item" key={resultIdentity(result)}>
+          <LinkStatusBadge result={result} />
+        </span>
+      ))}
+      {overflow > 0 && (
+        <span className="lc-badge-stack-item">
+          <Tooltip
+            content={<Text size={1}>{t('status.mixed-statuses')}</Text>}
+            placement="top"
+            portal
+          >
+            <Badge tone="critical" fontSize={1}>
+              +{overflow}
+            </Badge>
+          </Tooltip>
+        </span>
+      )}
+    </span>
+  )
 }
 
 /**
  * The document row's badge. All of the document's findings showing the same result render
- * that concrete badge (the 404 itself); different results collapse to a category label
- * ("Broken") whose tooltip points at the Details dialog for the per-URL codes. A tab only
- * ever mixes results within one status category, so the label is always truthful.
+ * that concrete badge (the 404 itself); different results render as a stacked-badge cluster
+ * (see StackedStatusBadges) so the actual codes stay visible instead of collapsing into one
+ * generic "Broken" label. A tab only ever mixes results within one status category, so every
+ * badge in a cluster always shares the same tone.
  */
 function AggregateStatusBadge({groups}: {groups: FindingGroup[]}): JSX.Element {
-  const {t} = useTranslation(linkCheckerLocaleNamespace)
   const first = groups[0].finding
   if (first.kind === 'reference') {
     return <ReferenceStatusBadge />
@@ -242,14 +279,7 @@ function AggregateStatusBadge({groups}: {groups: FindingGroup[]}): JSX.Element {
   if (sameResult) {
     return <LinkStatusBadge result={first.result} />
   }
-  const category = CATEGORY_BADGE[first.result.status]
-  return (
-    <Tooltip content={<Text size={1}>{t('status.mixed-statuses')}</Text>} placement="top" portal>
-      <Badge tone={category.tone} fontSize={1}>
-        {t(category.labelKey)}
-      </Badge>
-    </Tooltip>
-  )
+  return <StackedStatusBadges results={results.filter((r): r is UrlCheckResult => r !== null)} />
 }
 
 /** Lets the browser handle modifier/middle clicks natively (open in new tab/window),

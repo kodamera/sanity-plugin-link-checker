@@ -94,4 +94,71 @@ describe('ResultRow', () => {
     expect(button('result.details')).toBeInTheDocument()
     expect(screen.getByText('200')).toBeInTheDocument()
   })
+
+  it('stacks both concrete badges when a document has two distinct broken results', () => {
+    const groups = [
+      group(
+        linkFinding({href: 'https://example.com/one', result: {status: 'broken', httpStatus: 429}}),
+        ['k1'],
+      ),
+      group(
+        linkFinding({href: 'https://example.com/two', result: {status: 'broken', httpStatus: 404}}),
+        ['k2'],
+      ),
+    ]
+    renderUi(<ResultRow groups={groups} {...defaultProps()} />)
+
+    expect(screen.getByText('429')).toBeInTheDocument()
+    expect(screen.getByText('404')).toBeInTheDocument()
+  })
+
+  it('collapses repeated identical results in a mixed group to one badge, not one per group', () => {
+    const groups = [
+      group(
+        linkFinding({href: 'https://example.com/one', result: {status: 'broken', httpStatus: 404}}),
+        ['k1'],
+      ),
+      group(
+        linkFinding({href: 'https://example.com/two', result: {status: 'broken', httpStatus: 404}}),
+        ['k2'],
+      ),
+      group(
+        linkFinding({
+          href: 'https://example.com/three',
+          result: {status: 'broken', httpStatus: 429},
+        }),
+        ['k3'],
+      ),
+    ]
+    renderUi(<ResultRow groups={groups} {...defaultProps()} />)
+
+    expect(screen.getAllByText('404')).toHaveLength(1)
+    expect(screen.getByText('429')).toBeInTheDocument()
+  })
+
+  it('shows a +N overflow chip beyond the first two distinct results', () => {
+    const groups = [
+      group(
+        linkFinding({href: 'https://example.com/one', result: {status: 'broken', httpStatus: 429}}),
+        ['k1'],
+      ),
+      group(
+        linkFinding({href: 'https://example.com/two', result: {status: 'broken', httpStatus: 404}}),
+        ['k2'],
+      ),
+      group(
+        linkFinding({
+          href: 'https://example.com/three',
+          result: {status: 'broken', httpStatus: 500},
+        }),
+        ['k3'],
+      ),
+    ]
+    renderUi(<ResultRow groups={groups} {...defaultProps()} />)
+
+    expect(screen.getByText('429')).toBeInTheDocument()
+    expect(screen.getByText('404')).toBeInTheDocument()
+    expect(screen.getByText('+1')).toBeInTheDocument()
+    expect(screen.queryByText('500')).not.toBeInTheDocument()
+  })
 })
