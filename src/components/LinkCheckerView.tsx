@@ -272,30 +272,24 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
         .lc-row-preview [data-testid="default-preview"] { padding-left: 0; }
         .lc-row:hover { background-color: color-mix(in srgb, var(--card-fg-color) 5%, transparent); }
 
-        /* Mixed-status badge cluster (AggregateStatusBadge/StackedStatusBadges): a ring in
-           the row's own background color keeps overlapped edges readable, same technique
-           avatar stacks use. Default state IS the spread-out layout - devices with no
-           hover (touch) never get anything else, there's nothing to reveal on hover. */
-        .lc-badge-stack { display: inline-flex; align-items: center; }
-        .lc-badge-stack-item {
-          position: relative;
-          border-radius: 9999px;
-          box-shadow: 0 0 0 2px var(--card-bg-color);
-        }
-        .lc-badge-stack-item:not(:first-child) { margin-left: 4px; }
+        /* Mixed-status badge cluster (AggregateStatusBadge/StackedStatusBadges): one
+           concrete badge plus either a "+N" chip (collapsed) or the remaining real badges
+           (expanded) - never both, never overlapped, so nothing ever clips a neighbor's
+           text. Devices with no hover (touch) get the expanded group directly - there's no
+           hover gesture to reveal it with. */
+        .lc-badge-stack { display: inline-flex; align-items: center; gap: 4px; }
+        .lc-badge-stack-expanded { display: none; align-items: center; gap: 4px; }
+        .lc-badge-stack-collapsed { display: none; }
 
-        /* Only devices that can actually hover get the overlap-then-separate treatment -
-           it's a reveal gesture, and there's no equivalent gesture on touch. */
         @media (hover: hover) {
-          .lc-badge-stack-item { transition: margin-left 120ms ease; }
-          .lc-badge-stack-item:not(:first-child) { margin-left: -10px; z-index: 0; }
-          .lc-badge-stack:hover .lc-badge-stack-item:not(:first-child),
-          .lc-badge-stack:focus-within .lc-badge-stack-item:not(:first-child) {
-            margin-left: 4px;
-          }
+          .lc-badge-stack-collapsed { display: inline-flex; }
+          .lc-badge-stack:hover .lc-badge-stack-collapsed,
+          .lc-badge-stack:focus-within .lc-badge-stack-collapsed { display: none; }
+          .lc-badge-stack:hover .lc-badge-stack-expanded,
+          .lc-badge-stack:focus-within .lc-badge-stack-expanded { display: inline-flex; }
         }
-        @media (prefers-reduced-motion: reduce) {
-          .lc-badge-stack-item { transition: none; }
+        @media not (hover: hover) {
+          .lc-badge-stack-expanded { display: inline-flex; }
         }
       `}</style>
       <Stack gap={[4, 4, 5]} style={{width: '100%', minWidth: 0}}>
@@ -356,7 +350,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
               : undefined
           }
         >
-          <Stack gap={4}>
+          <Stack gap={[4, 4, 5]}>
             <MaybeScanSummaryCard
               result={result}
               holdingExternalLinks={holdingExternalLinks}
@@ -368,74 +362,80 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
 
             {showCorsBanner && <CorsBanner onDismiss={handleDismissBanner} />}
 
-            {brokenRefs.length > 0 && (
-              <Stack gap={4}>
-                <Stack gap={2}>
-                  <Heading size={1}>{t('findings.broken-references.title')}</Heading>
-                  <Text size={1} muted>
-                    {t('findings.broken-references.description')}
-                  </Text>
-                  <RefsSubtitle
-                    holdingExternalLinks={holdingExternalLinks}
-                    distinctBrokenRefs={distinctBrokenRefs}
-                    t={t}
-                  />
-                </Stack>
-                <TabbedFindings
-                  idPrefix="broken-refs"
-                  tabs={[
-                    {
-                      key: 'active',
-                      label: t('tabs.active'),
-                      emptyMessage: t('empty.active-broken-references'),
-                      items: activeBrokenRefs,
-                    },
-                    {
-                      key: 'resolved',
-                      label: t('tabs.resolved'),
-                      emptyMessage: t('empty.resolved'),
-                      items: resolvedBrokenRefs,
-                    },
-                  ]}
-                  previewDocuments={previewDocuments}
-                  previewsLoading={previewsLoading}
-                  acknowledgedKeys={acknowledgedKeys}
-                  onToggleAcknowledged={handleToggleAcknowledged}
-                  onOpenEdit={handleOpenEdit}
-                  onOpenDetails={handleOpenDetails}
-                  editHref={editHref}
-                />
-              </Stack>
-            )}
-
-            {/* Hidden when every checked link is fine - the all-clear card above already
-                says so, and tabs full of zeros under it read as unfinished work. Appears
-                as soon as there's anything to triage (or to audit in Resolved). */}
-            {(showLinkSection || holdingExternalLinks) && (
-              <Stack gap={4}>
-                <Stack gap={3}>
-                  <Heading size={1}>{t('findings.external-links.title')}</Heading>
-                  <Text size={1} muted>
-                    {t('findings.external-links.description')}
-                  </Text>
-                </Stack>
-                {holdingExternalLinks ? (
-                  <VerifyingLinksPlaceholder />
-                ) : (
-                  <LinkResultsTabs
-                    findings={linkFindings}
+            {/* Own, larger gap between these two - they're distinct sections, not part of
+                the same tight group as the summary card/banners above. A single child (only
+                one of the two present) gets no extra gap either side - Stack only spaces
+                between children that actually render. */}
+            <Stack gap={6}>
+              {brokenRefs.length > 0 && (
+                <Stack gap={4}>
+                  <Stack gap={2}>
+                    <Heading size={1}>{t('findings.broken-references.title')}</Heading>
+                    <Text size={1} muted>
+                      {t('findings.broken-references.description')}
+                    </Text>
+                    <RefsSubtitle
+                      holdingExternalLinks={holdingExternalLinks}
+                      distinctBrokenRefs={distinctBrokenRefs}
+                      t={t}
+                    />
+                  </Stack>
+                  <TabbedFindings
+                    idPrefix="broken-refs"
+                    tabs={[
+                      {
+                        key: 'active',
+                        label: t('tabs.active'),
+                        emptyMessage: t('empty.active-broken-references'),
+                        items: activeBrokenRefs,
+                      },
+                      {
+                        key: 'resolved',
+                        label: t('tabs.resolved'),
+                        emptyMessage: t('empty.resolved'),
+                        items: resolvedBrokenRefs,
+                      },
+                    ]}
                     previewDocuments={previewDocuments}
                     previewsLoading={previewsLoading}
                     acknowledgedKeys={acknowledgedKeys}
                     onToggleAcknowledged={handleToggleAcknowledged}
-                    editHref={editHref}
                     onOpenEdit={handleOpenEdit}
                     onOpenDetails={handleOpenDetails}
-                    okFindingsTruncated={result?.okFindingsTruncated}
+                    editHref={editHref}
                   />
-                )}
-              </Stack>
-            )}
+                </Stack>
+              )}
+
+              {/* Hidden when every checked link is fine - the all-clear card above already
+                  says so, and tabs full of zeros under it read as unfinished work. Appears
+                  as soon as there's anything to triage (or to audit in Resolved). */}
+              {(showLinkSection || holdingExternalLinks) && (
+                <Stack gap={4}>
+                  <Stack gap={3}>
+                    <Heading size={1}>{t('findings.external-links.title')}</Heading>
+                    <Text size={1} muted>
+                      {t('findings.external-links.description')}
+                    </Text>
+                  </Stack>
+                  {holdingExternalLinks ? (
+                    <VerifyingLinksPlaceholder />
+                  ) : (
+                    <LinkResultsTabs
+                      findings={linkFindings}
+                      previewDocuments={previewDocuments}
+                      previewsLoading={previewsLoading}
+                      acknowledgedKeys={acknowledgedKeys}
+                      onToggleAcknowledged={handleToggleAcknowledged}
+                      editHref={editHref}
+                      onOpenEdit={handleOpenEdit}
+                      onOpenDetails={handleOpenDetails}
+                      okFindingsTruncated={result?.okFindingsTruncated}
+                    />
+                  )}
+                </Stack>
+              )}
+            </Stack>
           </Stack>
         </Box>
 

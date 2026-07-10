@@ -85,7 +85,7 @@ export function TabbedFindings<T extends ScanFinding>({
   const activeTab = groupedTabs.find((t) => t.key === activeTabKey) ?? groupedTabs[0]
 
   return (
-    <Stack gap={3}>
+    <Stack gap={2}>
       {/* Horizontally scrollable within its own box on narrow screens, rather than wrapping
           or forcing the whole page wider - an unwrapped Flex row (TabList) otherwise blows
           out the page's horizontal extent past the viewport. */}
