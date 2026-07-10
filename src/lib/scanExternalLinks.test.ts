@@ -31,6 +31,36 @@ describe('scanExternalLinks excludeUrls', () => {
     expect(urlsChecked).toBe(1)
     expect(findings.map((f) => f.href)).toEqual(['https://example.com'])
   })
+
+  it('flags malformed URLs without calling checkUrl, but still checks valid ones', async () => {
+    const docs = [
+      {
+        _id: 'a',
+        _type: 'post',
+        good: 'https://example.com',
+        bad: 'https://example .com',
+      },
+    ]
+    const checked: string[] = []
+
+    const {findings, urlsChecked} = await scanExternalLinks(
+      docs,
+      {
+        checkUrl: async (url) => {
+          checked.push(url)
+          return {status: 'ok' as const}
+        },
+      },
+      undefined,
+    )
+
+    expect(checked).toEqual(['https://example.com'])
+    expect(urlsChecked).toBe(2)
+    const badFinding = findings.find((f) => f.href === 'https://example .com')
+    expect(badFinding?.result).toEqual({status: 'broken', reason: 'malformed-url'})
+    const goodFinding = findings.find((f) => f.href === 'https://example.com')
+    expect(goodFinding?.result).toEqual({status: 'ok'})
+  })
 })
 
 describe('interleaveByHost', () => {

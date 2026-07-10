@@ -2,6 +2,26 @@ import {checkUrl as defaultCheckUrl} from './checkUrl'
 import {runWithConcurrency} from './concurrencyPool'
 import {extractPortableTextLinks, type LinkOccurrence} from './extractPortableTextLinks'
 import type {BrokenLink, LinkCheckerPluginConfig, UrlCheckResult} from './types'
+import {isMalformedUrl} from './urlSyntax'
+
+/**
+ * A check that can flag a URL and produce its UrlCheckResult without ever
+ * reaching the network - for values that are guaranteed to fail (or
+ * shouldn't be attempted at all) regardless of what's actually listening at
+ * that address. Each entry short-circuits scanExternalLinks' network stage
+ * for URLs it matches; first match wins (checks are tried in array order).
+ */
+interface PreflightCheck {
+  reason: NonNullable<UrlCheckResult['reason']>
+  test: (url: string) => boolean
+}
+
+function classifyPreflight(url: string, checks: PreflightCheck[]): UrlCheckResult['reason'] | null {
+  for (const check of checks) {
+    if (check.test(url)) return check.reason
+  }
+  return null
+}
 
 interface RawDoc {
   _id: string
@@ -90,20 +110,39 @@ export async function scanExternalLinks(
     return {findings: [], urlsChecked: 0}
   }
 
+  // Built per-call (not module-level) since later checks in this list may read from `config`.
+  const preflightChecks: PreflightCheck[] = [{reason: 'malformed-url', test: isMalformedUrl}]
+
+  const preflightResults = new Map<string, UrlCheckResult['reason']>()
+  const urlsToCheck: string[] = []
+  for (const url of uniqueUrls) {
+    const reason = classifyPreflight(url, preflightChecks)
+    if (reason) preflightResults.set(url, reason)
+    else urlsToCheck.push(url)
+  }
+
   const concurrency = config.concurrency ?? 4
   const timeoutMs = config.timeoutMs ?? 8000
   const baseChecker = config.checkUrl ?? ((url: string) => defaultCheckUrl(url, timeoutMs))
   const checker = withHostPacing(baseChecker, config.hostDelayMs ?? 1000)
 
-  const results = await runWithConcurrency<string, UrlCheckResult>(
-    uniqueUrls,
-    concurrency,
-    150,
-    (url) => checker(url),
-    onProgress,
-  )
+  const results =
+    urlsToCheck.length > 0
+      ? await runWithConcurrency<string, UrlCheckResult>(
+          urlsToCheck,
+          concurrency,
+          150,
+          (url) => checker(url),
+          onProgress,
+        )
+      : []
 
-  const resultByUrl = new Map<string, UrlCheckResult>(uniqueUrls.map((url, i) => [url, results[i]]))
+  const resultByUrl = new Map<string, UrlCheckResult>([
+    ...urlsToCheck.map((url, i) => [url, results[i]] as const),
+    ...Array.from(preflightResults.entries()).map(
+      ([url, reason]) => [url, {status: 'broken', reason} as UrlCheckResult] as const,
+    ),
+  ])
 
   // Includes 'ok' results too (not just broken/unverifiable) so the Studio tool can show
   // a "Working" tab alongside "Broken"/"Unverifiable".
