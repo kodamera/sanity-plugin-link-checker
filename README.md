@@ -1,7 +1,4 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
-  <img src="assets/logo.svg" alt="sanity-plugin-link-checker" width="96" />
-</picture>
+<img src="assets/logo.svg" alt="sanity-plugin-link-checker" width="96" />
 
 <sub>Built by <a href="https://www.kodamera.se">Kodamera</a></sub>
 
