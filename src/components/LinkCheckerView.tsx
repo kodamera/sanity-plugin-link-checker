@@ -278,22 +278,28 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
            text. Collapsed and expanded are sequential siblings (not stacked), each sized to
            only its own content via max-width - a stacked/grid-area approach was tried first
            but reserves width for the WIDER of the two even at rest, leaving inconsistent
-           dead space before Details on rows with a narrow "+N" chip. Devices with no hover
-           (touch) get the expanded group directly - there's no hover gesture to reveal it
-           with. */
+           dead space before Details on rows with a narrow "+N" chip.
+
+           max-width itself is NOT in the transition list below, deliberately - animating a
+           layout property (width/max-width) forces a reflow every frame, and fighting the
+           badge's own min-width floor as it shrinks is exactly what produced the "jumps
+           left then bounces" motion this replaced. max-width now changes state-to-state in
+           a single instant frame (the snap itself is imperceptible); only opacity and
+           transform animate, both compositor-only properties a browser can run smoothly off
+           the main thread with no layout cost. Devices with no hover (touch) get the
+           expanded group directly - there's no hover gesture to reveal it with. */
         .lc-badge-stack { display: inline-flex; align-items: center; gap: 4px; }
         .lc-badge-stack-collapsed, .lc-badge-stack-expanded {
           display: inline-flex;
           align-items: center;
           gap: 4px;
           overflow: hidden;
-          transition: opacity 150ms ease, transform 150ms ease, max-width 180ms ease;
+          transition: opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
         }
         .lc-badge-stack-collapsed { max-width: 40px; }
-        /* Hidden state slides in from the right as it fades/grows in (and back out the same
-           way leaving), rather than a plain crossfade in place. 160px comfortably fits two
-           badges plus an overflow chip - transitioning max-width rather than width since
-           width can't animate to/from its intrinsic content size. */
+        /* Hidden state slides in from the right as it fades in (and back out the same way
+           leaving), rather than a plain crossfade in place. 160px comfortably fits two
+           badges plus an overflow chip. */
         .lc-badge-stack-expanded { max-width: 0; opacity: 0; transform: translateX(6px); }
 
         /* Every badge in this tool shows a status code or count at some point (200, 404,
