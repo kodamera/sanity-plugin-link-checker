@@ -122,6 +122,7 @@ function describeLinkStatus(
     return t('status.status-unconfirmed')
   }
 
+  if (result.reason === 'malformed-url') return t('status.malformed-url')
   if (result.reason === 'timeout') return t('status.server-did-not-respond')
   if (result.reason === 'network') return t('status.could-not-connect')
   return httpStatusDescription(result.httpStatus, t)
@@ -158,6 +159,16 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
       <StatusTooltip description={description}>
         <Badge tone="default" fontSize={1}>
           {t('badge.unverifiable')}
+        </Badge>
+      </StatusTooltip>
+    )
+  }
+
+  if (result.reason === 'malformed-url') {
+    return (
+      <StatusTooltip description={description}>
+        <Badge tone="critical" fontSize={1}>
+          {t('badge.malformed-url')}
         </Badge>
       </StatusTooltip>
     )

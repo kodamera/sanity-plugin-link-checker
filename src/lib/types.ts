@@ -4,7 +4,7 @@ export interface UrlCheckResult {
   status: UrlCheckStatus
   /** HTTP status code, when one was actually readable. */
   httpStatus?: number
-  reason?: 'timeout' | 'cors' | 'network' | 'http-error' | 'blocked'
+  reason?: 'timeout' | 'cors' | 'network' | 'http-error' | 'blocked' | 'malformed-url'
 }
 
 export interface LinkCheckerPluginConfig {
