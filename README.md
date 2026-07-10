@@ -273,6 +273,30 @@ translatable key.
 - Every environment (local Studio, deployed Studio, teammates) reads that same document, so a scan run anywhere shows up everywhere with no manual step.
 - It's also cached in the browser (per project + dataset) for a fast first paint.
 
+### Uninstalling
+
+Removing `linkChecker()` from `sanity.config.ts` only stops the plugin's Studio UI and
+API calls — it doesn't touch the dataset. Two documents are left behind, since neither
+is a schema type the Studio's own deletion UI would surface:
+
+- `link-checker-report` (`_type: 'linkCheckerReport'`) — the scan results
+- `link-checker-trigger` (`_type: 'linkCheckerTrigger'`) — only present if you use the
+  "Run scan" button with a deployed Document Function
+
+Delete them with the Sanity CLI, from a Studio project directory:
+
+```sh
+npx sanity documents delete link-checker-report
+npx sanity documents delete link-checker-trigger
+```
+
+Or via `@sanity/client`:
+
+```ts
+await client.delete('link-checker-report')
+await client.delete('link-checker-trigger')
+```
+
 ## License
 
 [MIT](LICENSE) © Kodamera
