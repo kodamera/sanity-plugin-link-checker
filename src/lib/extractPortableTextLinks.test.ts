@@ -85,4 +85,27 @@ describe('extractPortableTextLinks', () => {
     expect(occurrences[0]).toMatchObject({href: 'https://a.se', fieldPath: 'links[0]'})
     expect(occurrences[1]).toMatchObject({href: 'https://b.se', fieldPath: 'links[1]'})
   })
+
+  it('ignores a bare domain string by default', () => {
+    const doc = {_id: 'a', _type: 'post', website: 'example.com'}
+    expect(extractPortableTextLinks(doc)).toHaveLength(0)
+  })
+
+  it('finds a bare domain string when detectBareDomains is on', () => {
+    const doc = {_id: 'a', _type: 'post', website: 'example.com'}
+    const occurrences = extractPortableTextLinks(doc, {detectBareDomains: true})
+    expect(occurrences).toHaveLength(1)
+    expect(occurrences[0]).toMatchObject({href: 'example.com', fieldPath: 'website'})
+  })
+
+  it('does not double-count a real https:// URL even with detectBareDomains on', () => {
+    const doc = {_id: 'a', _type: 'post', website: 'https://example.com'}
+    const occurrences = extractPortableTextLinks(doc, {detectBareDomains: true})
+    expect(occurrences).toHaveLength(1)
+  })
+
+  it('does not flag a non-domain-shaped string even with detectBareDomains on', () => {
+    const doc = {_id: 'a', _type: 'post', tech: 'Node.js'}
+    expect(extractPortableTextLinks(doc, {detectBareDomains: true})).toHaveLength(0)
+  })
 })

@@ -5,6 +5,7 @@ const resources = {
   'badge.dangling-reference': 'Dangling reference',
   'badge.internal-host': 'Local/internal address',
   'badge.malformed-url': 'Invalid URL',
+  'badge.missing-protocol': 'Missing protocol',
   'badge.ok': 'OK',
   'badge.timeout': 'Timeout',
   'badge.unverifiable': 'Unverifiable',
@@ -69,6 +70,8 @@ const resources = {
   'status.internal-server-error': 'Internal server error',
   'status.malformed-url':
     "This isn't a valid URL - check for a typo (e.g. a stray space or missing character)",
+  'status.missing-protocol':
+    "This looks like a domain but has no http:// or https:// in front of it, so it won't render as a clickable link",
   'status.mixed-statuses': 'Different statuses per link - open Details to see each one',
   'status.not-found': 'Not found',
   'status.points-to-deleted-document': 'Points to a deleted document',
