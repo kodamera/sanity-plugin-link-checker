@@ -1,6 +1,10 @@
 import {checkUrl as defaultCheckUrl} from './checkUrl'
 import {runWithConcurrency} from './concurrencyPool'
-import {extractPortableTextLinks, type LinkOccurrence} from './extractPortableTextLinks'
+import {
+  extractPortableTextLinks,
+  isUrlShaped,
+  type LinkOccurrence,
+} from './extractPortableTextLinks'
 import type {BrokenLink, LinkCheckerPluginConfig, UrlCheckResult} from './types'
 import {isMalformedUrl} from './urlSyntax'
 
@@ -92,7 +96,7 @@ export async function scanExternalLinks(
   docs: RawDoc[],
   config: Pick<
     LinkCheckerPluginConfig,
-    'concurrency' | 'timeoutMs' | 'hostDelayMs' | 'checkUrl' | 'excludeUrls'
+    'concurrency' | 'timeoutMs' | 'hostDelayMs' | 'checkUrl' | 'excludeUrls' | 'detectBareDomains'
   >,
   onProgress?: (done: number, total: number) => void,
 ): Promise<{findings: BrokenLink[]; urlsChecked: number}> {
@@ -102,11 +106,23 @@ export async function scanExternalLinks(
       typeof pattern === 'string' ? url.includes(pattern) : pattern.test(url),
     )
   const occurrences: LinkOccurrence[] = docs
-    .flatMap((doc) => extractPortableTextLinks(doc))
+    .flatMap((doc) => extractPortableTextLinks(doc, {detectBareDomains: config.detectBareDomains}))
     .filter((occ) => !isExcluded(occ.href))
 
-  const uniqueUrls = interleaveByHost(Array.from(new Set(occurrences.map((o) => o.href))))
-  if (uniqueUrls.length === 0) {
+  // Split by whether this occurrence's href is a URL_PATTERN match (goes through the
+  // normal uniqueUrls/preflight/network pipeline) or a bare-domain occurrence (short-
+  // circuits straight to a result, same as a preflight-flagged URL) - a bare-domain
+  // "URL" was never a uniqueUrls candidate for network checking in the first place.
+  const bareDomainHrefs = new Set(
+    occurrences.filter((occ) => !isUrlShaped(occ.href)).map((occ) => occ.href),
+  )
+
+  const uniqueUrls = interleaveByHost(
+    Array.from(
+      new Set(occurrences.map((o) => o.href).filter((href) => !bareDomainHrefs.has(href))),
+    ),
+  )
+  if (uniqueUrls.length === 0 && bareDomainHrefs.size === 0) {
     return {findings: [], urlsChecked: 0}
   }
 
@@ -142,6 +158,9 @@ export async function scanExternalLinks(
     ...Array.from(preflightResults.entries()).map(
       ([url, reason]) => [url, {status: 'broken', reason} as UrlCheckResult] as const,
     ),
+    ...Array.from(bareDomainHrefs).map(
+      (href) => [href, {status: 'broken', reason: 'missing-protocol'} as UrlCheckResult] as const,
+    ),
   ])
 
   // Includes 'ok' results too (not just broken/unverifiable) so the Studio tool can show
@@ -156,5 +175,5 @@ export async function scanExternalLinks(
     result: resultByUrl.get(occ.href) as UrlCheckResult,
   }))
 
-  return {findings, urlsChecked: uniqueUrls.length}
+  return {findings, urlsChecked: uniqueUrls.length + bareDomainHrefs.size}
 }

@@ -4,7 +4,8 @@ export interface UrlCheckResult {
   status: UrlCheckStatus
   /** HTTP status code, when one was actually readable. */
   httpStatus?: number
-  reason?: 'timeout' | 'cors' | 'network' | 'http-error' | 'blocked' | 'malformed-url'
+  reason?:
+    'timeout' | 'cors' | 'network' | 'http-error' | 'blocked' | 'malformed-url' | 'missing-protocol'
 }
 
 export interface LinkCheckerPluginConfig {
@@ -46,6 +47,16 @@ export interface LinkCheckerPluginConfig {
    * fresh drafts. Default: no age limit (all drafts scanned).
    */
   ignoreDraftsOlderThanDays?: number
+  /**
+   * Also flag string values that look like a domain but are missing the
+   * `http://`/`https://` protocol (e.g. a field whose whole value is
+   * `example.com`) - invisible to the normal scan otherwise. Off by default:
+   * detecting these needs a heuristic (domain-shape + a real-TLD check), and
+   * while tuned to avoid the likely false positives for this plugin's
+   * audience (see README), it can't be made airtight the way the other
+   * syntax checks are. Turn on deliberately, review what it finds.
+   */
+  detectBareDomains?: boolean
 }
 
 /** Publish state of the document a finding came from, at scan time. */
