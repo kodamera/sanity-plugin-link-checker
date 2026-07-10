@@ -11,6 +11,7 @@ export {
   writeReport,
 } from './lib/reportDocument'
 export {runScan} from './lib/runScan'
+export {summarizeResult} from './lib/summarizeResult'
 export {
   readTriggerScanConfig,
   TRIGGER_DOC_ID,
