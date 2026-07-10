@@ -280,14 +280,18 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
            but reserves width for the WIDER of the two even at rest, leaving inconsistent
            dead space before Details on rows with a narrow "+N" chip.
 
-           max-width itself is NOT in the transition list below, deliberately - animating a
-           layout property (width/max-width) forces a reflow every frame, and fighting the
-           badge's own min-width floor as it shrinks is exactly what produced the "jumps
-           left then bounces" motion this replaced. max-width now changes state-to-state in
-           a single instant frame (the snap itself is imperceptible); only opacity and
-           transform animate, both compositor-only properties a browser can run smoothly off
-           the main thread with no layout cost. Devices with no hover (touch) get the
-           expanded group directly - there's no hover gesture to reveal it with. */
+           max-width IS animated (unlike a first attempt that left it instant, transform/
+           opacity-only): these are a couple of tiny badge elements, not a large/complex
+           layout - the reflow cost is trivial, and leaving it instant meant this cluster's
+           own footprint changed size in a single frame. The row's title column (flex: 1,
+           minWidth: 0) absorbs that width change to keep the trailing group's flexShrink: 0
+           content unshrunk, so an instant snap here read as the whole trailing group -
+           primary badge included - jumping left rather than animating. The actual bug in
+           that first attempt was the collapsed chip's own min-width fighting its shrinking
+           container mid-transition (see the min-width rule below, deliberately NOT applied
+           to the collapsed chip) - not max-width transitions themselves. Devices with no
+           hover (touch) get the expanded group directly - there's no hover gesture to
+           reveal it with. */
         /* CSS gap inserts space between EVERY adjacent flex item regardless of its size,
            including a max-width: 0 one - collapsed/expanded as direct children of
            .lc-badge-stack (both always rendered, only one ever visible) would double the
@@ -303,7 +307,10 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
           align-items: center;
           gap: 4px;
           overflow: hidden;
-          transition: opacity 150ms ease-out, transform 150ms ease-out;
+          transition:
+            opacity 150ms ease-out,
+            transform 150ms ease-out,
+            max-width 200ms ease-out;
         }
         .lc-badge-stack-collapsed { max-width: 40px; }
         /* Hidden state slides in from the right as it fades in (and back out the same way
@@ -322,8 +329,13 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
 
         /* The "+N" chip is 1-2 digits, always - a plain Badge (sized for arbitrary text)
            reads as a squat, oddly-shaped pill next to a real code/label. Fixed min-width and
-           centered text make it read as a compact counter instead. */
-        .lc-badge-stack-collapsed [data-ui="Badge"],
+           centered text make it read as a compact counter instead - applied only to the
+           expanded state's overflow chip, which sits at a fixed size and never animates.
+           The collapsed chip deliberately does NOT get min-width: its own max-width
+           animates down to 0 on reveal, and a badge that refuses to shrink past a floor
+           while its container keeps shrinking around it just gets abruptly clipped instead
+           of shrinking smoothly - that fight was the actual cause of the very first
+           attempt's jump/bounce motion. */
         .lc-badge-stack-expanded [data-ui="Badge"]:last-child:not(:first-child) {
           min-width: 1.75em;
           text-align: center;
