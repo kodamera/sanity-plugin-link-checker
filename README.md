@@ -9,7 +9,7 @@
 
 [![npm version](https://img.shields.io/npm/v/sanity-plugin-link-checker.svg)](https://www.npmjs.com/package/sanity-plugin-link-checker)
 [![CI](https://github.com/kodamera/sanity-plugin-link-checker/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/kodamera/sanity-plugin-link-checker/actions/workflows/main.yml)
-[![License: MIT](https://img.shields.io/npm/l/sanity-plugin-link-checker.svg?cachebust=1)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Finds broken links and dangling references across a Sanity dataset and shows them in a
 Studio tool, with one click to jump straight to the offending document. Dangling-reference
