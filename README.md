@@ -193,6 +193,7 @@ linkChecker({
   skipInternalHostCheck: false, // flag links to localhost/private-network hosts
   internalHostPatterns: ['staging.example.com'], // extra hostnames to flag as internal
   detectBareDomains: false, // also flag domain-shaped values missing http(s)://
+  detectUnlinkedUrls: false, // also flag URL-shaped text in rich text with no link attached
   apiVersion: '2024-01-01', // Sanity client API version
   checkUrl: async (url) => ({status: 'ok'}), // optional override, see Advanced below
   structureToolName: 'structure', // structure tool name, if renamed
@@ -210,9 +211,20 @@ linkChecker({
 | `skipInternalHostCheck` | `boolean`          | `false`          | Skip flagging links to localhost/private-network hosts. Only turn on if your project genuinely serves internal-only content that's expected to link to private addresses |
 | `internalHostPatterns` | `(string \| RegExp)[]` | `[]`         | Extra hostnames to flag as internal, beyond the built-in loopback/private/link-local ranges - e.g. your own staging subdomain |
 | `detectBareDomains` | `boolean`              | `false`          | Also flag string values that look like a domain but are missing `http://`/`https://` (e.g. a field whose whole value is `example.com`). Off by default - the domain-shape + real-TLD heuristic is tuned to avoid likely false positives (`Node.js`, `README.md`, `install.sh`, `script.py`, and ordinary filenames), but can't be made airtight; turn on deliberately and review what it finds |
+| `detectUnlinkedUrls` | `boolean`             | `false`          | Also flag URL-shaped text found inside rich text that has no link annotation attached - text that looks clickable but isn't. Off by default: it surfaces as a warning (Unverifiable tab, never fails `--fail-on-findings`), since detecting a URL's boundary inside a sentence is necessarily approximate - see note below |
 | `apiVersion`        | `string`               | `'2024-01-01'`   | Sanity client API version                                                                               |
 | `checkUrl`          | `function`             | built-in checker | Override how a URL is checked (see [Custom URL checking via a proxy](#custom-url-checking-via-a-proxy)) |
 | `structureToolName` | `string`               | `'structure'`    | Structure tool name used for "open document" links; only needed if renamed via `structureTool({name})`  |
+
+`detectUnlinkedUrls` only sees rich text built on Sanity's standard `block`/`span`
+Portable Text type - the fixed `children`/`markDefs`/`marks` shape the block editor itself
+hardcodes, not a per-schema field name. A fully bespoke, hand-rolled rich-text structure
+(not built on Sanity's standard block array member) is invisible to this specific check, by
+design - there's no config escape hatch planned for it. A field-name-remapping option was
+considered and rejected: the standard case has nothing to remap (Sanity's block editor
+doesn't allow renaming `children`/`markDefs`/`marks` at all), and a genuinely bespoke
+structure usually differs in more than field names, so a simple mapping wouldn't reliably
+work anyway.
 
 ## Advanced
 
