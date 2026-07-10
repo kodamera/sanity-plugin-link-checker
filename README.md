@@ -10,9 +10,10 @@
 <!-- TODO(plan-009): CI + npm version badges -->
 
 Finds broken links and dangling references across a Sanity dataset and shows them in a
-Studio tool, with one click to jump straight to the offending document. Works out of the
-box for internal reference checks; deploy the included Document Function once for fully
-accurate external-link results too.
+Studio tool, with one click to jump straight to the offending document. Dangling-reference
+checks work out of the box. **Accurate external-link checks need the included Document
+Function** — one command to deploy — since browser-only checks are CORS-limited and mostly
+come back `unverifiable` rather than a real answer.
 
 ![The Link Checker tool showing broken links and dangling references](assets/screenshot-results.jpg)
 
@@ -39,7 +40,7 @@ accurate external-link results too.
 
 ## Features
 
-- **Finds broken external links** — every URL in your content, checked over HTTP with real status codes (via the included Document Function or CLI).
+- **Finds broken external links** — every URL in your content, checked over HTTP with real status codes. Needs the included Document Function (or CLI) — the Studio's "Run scan" button alone is CORS-limited and can't give you real answers.
 - **Finds dangling references** — reference fields pointing at documents that no longer exist, checked against both published and draft versions.
 - **Scans everything** — published documents, drafts, and release versions across the entire dataset.
 - **Jump straight to the problem** — click any finding to open the document with the offending field focused and scrolled into view.
@@ -106,12 +107,16 @@ npm install sanity-plugin-link-checker
    ```
 
 2. Open the new **Link Checker** tool in the Studio menu and click **Run scan**.
-3. (Recommended) Deploy the Document Function for accurate external-link results — one command, see the next section.
+3. Deploy the Document Function — one command, see the next section.
+
+   > **Do this one.** Without the Function, external checks run from the browser and are
+   > CORS-limited — most links come back `unverifiable` instead of a real broken/ok
+   > answer. The Function is what makes external-link checking actually work.
 
 Results are stored in the dataset as a single, always-overwritten document, so every
 environment (local Studio, deployed Studio, teammates) sees the same scan with no manual
-step. Until step 3 is done, external checks run from the browser and are CORS-limited, so
-most links come back `unverifiable` — see [Why browser checks are limited (CORS)](#why-browser-checks-are-limited-cors).
+step. See [Why browser checks are limited (CORS)](#why-browser-checks-are-limited-cors) for
+the full explanation.
 
 ## Accurate external checks: deploy the Document Function (once)
 
