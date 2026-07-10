@@ -5,6 +5,7 @@ import {
   isUrlShaped,
   type LinkOccurrence,
 } from './extractPortableTextLinks'
+import {extractUnlinkedUrls} from './extractUnlinkedUrls'
 import {isInternalHost} from './internalHosts'
 import type {BrokenLink, LinkCheckerPluginConfig, UrlCheckResult} from './types'
 import {isMalformedUrl} from './urlSyntax'
@@ -105,6 +106,7 @@ export async function scanExternalLinks(
     | 'skipInternalHostCheck'
     | 'internalHostPatterns'
     | 'detectBareDomains'
+    | 'detectUnlinkedUrls'
   >,
   onProgress?: (done: number, total: number) => void,
 ): Promise<{findings: BrokenLink[]; urlsChecked: number}> {
@@ -116,6 +118,14 @@ export async function scanExternalLinks(
   const occurrences: LinkOccurrence[] = docs
     .flatMap((doc) => extractPortableTextLinks(doc, {detectBareDomains: config.detectBareDomains}))
     .filter((occ) => !isExcluded(occ.href))
+
+  // A structurally separate check - unlinked URLs never went through extractPortableTextLinks
+  // (that walk only matches a string's ENTIRE value; these are substrings of prose) and never
+  // become uniqueUrls candidates, so they're gathered and short-circuited to a result of their
+  // own, same bypass-the-network-stage pattern as bareDomainHrefs below.
+  const unlinkedOccurrences = config.detectUnlinkedUrls
+    ? docs.flatMap((doc) => extractUnlinkedUrls(doc)).filter((occ) => !isExcluded(occ.href))
+    : []
 
   // Split by whether this occurrence's href is a URL_PATTERN match (goes through the
   // normal uniqueUrls/preflight/network pipeline) or a bare-domain occurrence (short-
@@ -130,7 +140,7 @@ export async function scanExternalLinks(
       new Set(occurrences.map((o) => o.href).filter((href) => !bareDomainHrefs.has(href))),
     ),
   )
-  if (uniqueUrls.length === 0 && bareDomainHrefs.size === 0) {
+  if (uniqueUrls.length === 0 && bareDomainHrefs.size === 0 && unlinkedOccurrences.length === 0) {
     return {findings: [], urlsChecked: 0}
   }
 
@@ -189,5 +199,21 @@ export async function scanExternalLinks(
     result: resultByUrl.get(occ.href) as UrlCheckResult,
   }))
 
-  return {findings, urlsChecked: uniqueUrls.length + bareDomainHrefs.size}
+  // Unlinked-URL occurrences never went through uniqueUrls/resultByUrl at all (there's
+  // nothing to check over the network - the "problem" is the missing link annotation,
+  // not the destination), so they're appended as their own separately-sourced findings.
+  const unlinkedFindings: BrokenLink[] = unlinkedOccurrences.map((occ) => ({
+    kind: 'link' as const,
+    fromId: occ.fromId,
+    fromType: occ.fromType,
+    fieldPath: occ.fieldPath,
+    focusPath: occ.focusPath,
+    href: occ.href,
+    result: {status: 'unverifiable', reason: 'unlinked-url'},
+  }))
+
+  return {
+    findings: [...findings, ...unlinkedFindings],
+    urlsChecked: uniqueUrls.length + bareDomainHrefs.size + unlinkedOccurrences.length,
+  }
 }
