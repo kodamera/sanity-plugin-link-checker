@@ -13,6 +13,7 @@ export interface UrlCheckResult {
     | 'malformed-url'
     | 'internal-host'
     | 'missing-protocol'
+    | 'unlinked-url'
 }
 
 export interface LinkCheckerPluginConfig {
@@ -80,6 +81,14 @@ export interface LinkCheckerPluginConfig {
    * syntax checks are. Turn on deliberately, review what it finds.
    */
   detectBareDomains?: boolean
+  /**
+   * Also flag URL-shaped text found inside rich text that has no link
+   * annotation attached - text that looks like a link but isn't clickable.
+   * Off by default: detecting a URL's boundary inside a sentence is
+   * necessarily approximate (see README), and this surfaces as a warning
+   * (Unverifiable tab, never fails --fail-on-findings), not a hard error.
+   */
+  detectUnlinkedUrls?: boolean
 }
 
 /** Publish state of the document a finding came from, at scan time. */

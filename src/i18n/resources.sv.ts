@@ -8,6 +8,7 @@ const resources = {
   'badge.missing-protocol': 'Protokoll saknas',
   'badge.ok': 'OK',
   'badge.timeout': 'Tidsgräns nådd',
+  'badge.unlinked-url': 'Ingen länk',
   'badge.unverifiable': 'Går ej att verifiera',
   'banner.awaiting-function':
     'Resultaten ovan kommer från den snabba kontrollen i webbläsaren. Om en Document Function är installerad kör den kontrollen på serversidan nu (det kan ta ett par minuter) och ersätter resultaten automatiskt när den är klar.',
@@ -85,6 +86,8 @@ const resources = {
   'status.status-unconfirmed': 'Status ej bekräftad',
   'status.unexpected-status': 'Oväntad status {{status}}',
   'status.unknown-server-error': 'Okänt serverfel',
+  'status.unlinked-url':
+    'Det här ser ut som en URL men är inte länkad - den visas som vanlig, oklickbar text på sajten',
   'summary.coverage': '{{documents}} dokument och {{urls}} länkar kontrollerade',
   'summary.documents-with-issues_one': '{{count}} dokument med problem',
   'summary.documents-with-issues_other': '{{count}} dokument med problem',

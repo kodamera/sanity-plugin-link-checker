@@ -91,6 +91,65 @@ describe('scanExternalLinks excludeUrls', () => {
   })
 })
 
+describe('scanExternalLinks unlinked URLs', () => {
+  it('flags an unlinked URL in prose as unverifiable, without calling checkUrl, when detectUnlinkedUrls is on', async () => {
+    const docs = [
+      {
+        _id: 'a',
+        _type: 'post',
+        body: [
+          {
+            _type: 'block',
+            _key: 'b1',
+            markDefs: [],
+            children: [
+              {_type: 'span', _key: 's1', text: 'see https://example.com here', marks: []},
+            ],
+          },
+        ],
+      },
+    ]
+    const checked: string[] = []
+
+    const {findings} = await scanExternalLinks(
+      docs,
+      {
+        detectUnlinkedUrls: true,
+        checkUrl: async (url) => {
+          checked.push(url)
+          return {status: 'ok' as const}
+        },
+      },
+      undefined,
+    )
+
+    expect(checked).toEqual([])
+    const finding = findings.find((f) => f.href === 'https://example.com')
+    expect(finding?.result).toEqual({status: 'unverifiable', reason: 'unlinked-url'})
+  })
+
+  it('does not run extractUnlinkedUrls at all when detectUnlinkedUrls is unset', async () => {
+    const docs = [
+      {
+        _id: 'a',
+        _type: 'post',
+        body: [
+          {
+            _type: 'block',
+            _key: 'b1',
+            markDefs: [],
+            children: [
+              {_type: 'span', _key: 's1', text: 'see https://example.com here', marks: []},
+            ],
+          },
+        ],
+      },
+    ]
+    const {findings} = await scanExternalLinks(docs, {}, undefined)
+    expect(findings).toHaveLength(0)
+  })
+})
+
 describe('scanExternalLinks internal hosts', () => {
   it('flags internal-host URLs without calling checkUrl, but still checks public ones', async () => {
     const docs = [
