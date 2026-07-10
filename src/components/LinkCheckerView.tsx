@@ -294,7 +294,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
           align-items: center;
           gap: 4px;
           overflow: hidden;
-          transition: opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+          transition: opacity 150ms ease-out, transform 150ms ease-out;
         }
         .lc-badge-stack-collapsed { max-width: 40px; }
         /* Hidden state slides in from the right as it fades in (and back out the same way
