@@ -244,7 +244,7 @@ function StackedStatusBadges({results}: {results: UrlCheckResult[]}): JSX.Elemen
             {/* Neutral tone deliberately - this is a count, not a status verdict. The
                 concrete badge to its left already carries the real severity color; coloring
                 the count too would read as "the +N itself is critical." */}
-            <Badge tone="default" fontSize={1} padding={2}>
+            <Badge tone="default" fontSize={1} paddingX={1} paddingY={2}>
               +{extraCount}
             </Badge>
           </span>

@@ -280,10 +280,15 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
            get the expanded group directly - there's no hover gesture to reveal it with. */
         .lc-badge-stack { display: inline-flex; align-items: center; gap: 4px; }
         .lc-badge-stack-reveal { display: inline-grid; }
+        /* Both groups share a grid cell sized to the WIDER of the two (needed so the
+           crossfade doesn't reflow) - justify-content: flex-end keeps the narrower one
+           (usually collapsed, just the "+N" chip) flush against Details instead of sitting
+           flush-left with a visible gap in the reserved space before it. */
         .lc-badge-stack-collapsed, .lc-badge-stack-expanded {
           grid-area: 1 / 1;
           display: inline-flex;
           align-items: center;
+          justify-content: flex-end;
           gap: 4px;
           transition: opacity 150ms ease, transform 150ms ease;
         }
