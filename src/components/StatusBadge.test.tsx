@@ -47,6 +47,11 @@ describe('LinkStatusBadge', () => {
     renderUi(<LinkStatusBadge result={{status: 'broken', reason: 'malformed-url'}} />)
     expect(screen.getByText('badge.malformed-url')).toBeInTheDocument()
   })
+
+  it('shows a distinct badge for a missing-protocol value', () => {
+    renderUi(<LinkStatusBadge result={{status: 'broken', reason: 'missing-protocol'}} />)
+    expect(screen.getByText('badge.missing-protocol')).toBeInTheDocument()
+  })
 })
 
 describe('ReferenceStatusBadge', () => {

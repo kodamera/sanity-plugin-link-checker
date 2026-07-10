@@ -61,6 +61,34 @@ describe('scanExternalLinks excludeUrls', () => {
     const goodFinding = findings.find((f) => f.href === 'https://example.com')
     expect(goodFinding?.result).toEqual({status: 'ok'})
   })
+
+  it('flags a bare domain as missing-protocol without calling checkUrl, when detectBareDomains is on', async () => {
+    const docs = [{_id: 'a', _type: 'post', good: 'https://example.com', bare: 'example.se'}]
+    const checked: string[] = []
+
+    const {findings, urlsChecked} = await scanExternalLinks(
+      docs,
+      {
+        detectBareDomains: true,
+        checkUrl: async (url) => {
+          checked.push(url)
+          return {status: 'ok' as const}
+        },
+      },
+      undefined,
+    )
+
+    expect(checked).toEqual(['https://example.com'])
+    expect(urlsChecked).toBe(2)
+    const bareFinding = findings.find((f) => f.href === 'example.se')
+    expect(bareFinding?.result).toEqual({status: 'broken', reason: 'missing-protocol'})
+  })
+
+  it('does not extract bare domains at all when detectBareDomains is unset', async () => {
+    const docs = [{_id: 'a', _type: 'post', bare: 'example.se'}]
+    const {findings} = await scanExternalLinks(docs, {}, undefined)
+    expect(findings).toHaveLength(0)
+  })
 })
 
 describe('interleaveByHost', () => {
