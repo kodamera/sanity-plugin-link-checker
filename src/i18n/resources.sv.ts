@@ -4,6 +4,7 @@ const resources = {
   'badge.broken': 'Bruten',
   'badge.dangling-reference': 'Bruten referens',
   'badge.malformed-url': 'Ogiltig URL',
+  'badge.missing-protocol': 'Protokoll saknas',
   'badge.ok': 'OK',
   'badge.timeout': 'Tidsgräns nådd',
   'badge.unverifiable': 'Går ej att verifiera',
@@ -66,6 +67,8 @@ const resources = {
   'status.internal-server-error': 'Internt serverfel',
   'status.malformed-url':
     'Det här är inte en giltig URL - kontrollera om det är en felstavning (t.ex. ett extra mellanslag eller saknat tecken)',
+  'status.missing-protocol':
+    'Det här ser ut som en domän men saknar http:// eller https:// framför sig, så den blir inte en klickbar länk',
   'status.mixed-statuses': 'Olika statusar per länk - öppna Detaljer för att se varje enskild',
   'status.not-found': 'Hittades inte',
   'status.points-to-deleted-document': 'Pekar på ett borttaget dokument',
