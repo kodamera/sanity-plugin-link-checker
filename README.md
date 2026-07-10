@@ -164,6 +164,7 @@ linkChecker({
   excludeTypes: ['siteSettings'], // document types to skip entirely
   excludeUrls: ['linkedin.com'], // URLs to skip (substring or RegExp)
   ignoreDraftsOlderThanDays: 90, // skip abandoned never-published drafts
+  detectBareDomains: false, // also flag domain-shaped values missing http(s)://
   apiVersion: '2024-01-01', // Sanity client API version
   checkUrl: async (url) => ({status: 'ok'}), // optional override, see Advanced below
   structureToolName: 'structure', // structure tool name, if renamed
@@ -178,6 +179,7 @@ linkChecker({
 | `excludeTypes`      | `string[]`             | `[]`             | Document types to skip entirely; `sanity.*` system types are always skipped                             |
 | `excludeUrls`       | `(string \| RegExp)[]` | `[]`             | External URLs to skip - a string matches as a substring, a RegExp against the full URL. Useful for hosts that block automated checks (LinkedIn, ...) |
 | `ignoreDraftsOlderThanDays` | `number`       | off              | Skip never-published drafts whose last edit is older than this many days. Drafts of published documents always scan, whatever their age |
+| `detectBareDomains` | `boolean`              | `false`          | Also flag string values that look like a domain but are missing `http://`/`https://` (e.g. a field whose whole value is `example.com`). Off by default - the domain-shape + real-TLD heuristic is tuned to avoid likely false positives (`Node.js`, `README.md`, `install.sh`, `script.py`, and ordinary filenames), but can't be made airtight; turn on deliberately and review what it finds |
 | `apiVersion`        | `string`               | `'2024-01-01'`   | Sanity client API version                                                                               |
 | `checkUrl`          | `function`             | built-in checker | Override how a URL is checked (see [Custom URL checking via a proxy](#custom-url-checking-via-a-proxy)) |
 | `structureToolName` | `string`               | `'structure'`    | Structure tool name used for "open document" links; only needed if renamed via `structureTool({name})`  |
