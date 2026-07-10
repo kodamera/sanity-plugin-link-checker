@@ -117,6 +117,7 @@ function describeLinkStatus(
   if (result.status === 'ok') return t('status.responded-successfully')
 
   if (result.status === 'unverifiable') {
+    if (result.reason === 'unlinked-url') return t('status.unlinked-url')
     if (result.reason === 'cors') return t('status.blocked-by-cors')
     if (result.reason === 'blocked') return t('status.blocked-by-site')
     return t('status.status-unconfirmed')
@@ -145,6 +146,18 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
   }
 
   if (result.status === 'unverifiable') {
+    // URL-shaped prose text with no link mark attached - the same "pay attention, but not
+    // necessarily wrong" caution family as the bot-wall case below (it might be intentional
+    // plain text), just without a status code to show.
+    if (result.reason === 'unlinked-url') {
+      return (
+        <StatusTooltip description={description}>
+          <Badge tone="caution" fontSize={1}>
+            {t('badge.unlinked-url')}
+          </Badge>
+        </StatusTooltip>
+      )
+    }
     // Bot walls get a caution badge showing the actual status code (999, 429, ...) - the
     // code is the interesting part ("why does it say broken when it works?"), and caution
     // separates "a machine was turned away" from critical "confirmed dead".
