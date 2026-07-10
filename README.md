@@ -164,6 +164,8 @@ linkChecker({
   excludeTypes: ['siteSettings'], // document types to skip entirely
   excludeUrls: ['linkedin.com'], // URLs to skip (substring or RegExp)
   ignoreDraftsOlderThanDays: 90, // skip abandoned never-published drafts
+  skipInternalHostCheck: false, // flag links to localhost/private-network hosts
+  internalHostPatterns: ['staging.example.com'], // extra hostnames to flag as internal
   apiVersion: '2024-01-01', // Sanity client API version
   checkUrl: async (url) => ({status: 'ok'}), // optional override, see Advanced below
   structureToolName: 'structure', // structure tool name, if renamed
@@ -178,6 +180,8 @@ linkChecker({
 | `excludeTypes`      | `string[]`             | `[]`             | Document types to skip entirely; `sanity.*` system types are always skipped                             |
 | `excludeUrls`       | `(string \| RegExp)[]` | `[]`             | External URLs to skip - a string matches as a substring, a RegExp against the full URL. Useful for hosts that block automated checks (LinkedIn, ...) |
 | `ignoreDraftsOlderThanDays` | `number`       | off              | Skip never-published drafts whose last edit is older than this many days. Drafts of published documents always scan, whatever their age |
+| `skipInternalHostCheck` | `boolean`          | `false`          | Skip flagging links to localhost/private-network hosts. Only turn on if your project genuinely serves internal-only content that's expected to link to private addresses |
+| `internalHostPatterns` | `(string \| RegExp)[]` | `[]`         | Extra hostnames to flag as internal, beyond the built-in loopback/private/link-local ranges - e.g. your own staging subdomain |
 | `apiVersion`        | `string`               | `'2024-01-01'`   | Sanity client API version                                                                               |
 | `checkUrl`          | `function`             | built-in checker | Override how a URL is checked (see [Custom URL checking via a proxy](#custom-url-checking-via-a-proxy)) |
 | `structureToolName` | `string`               | `'structure'`    | Structure tool name used for "open document" links; only needed if renamed via `structureTool({name})`  |
