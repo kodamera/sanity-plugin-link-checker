@@ -42,6 +42,11 @@ describe('LinkStatusBadge', () => {
     renderUi(<LinkStatusBadge result={{status: 'ok', httpStatus: 200}} />)
     expect(screen.getByText('200')).toBeInTheDocument()
   })
+
+  it('shows a distinct badge for a syntactically malformed URL', () => {
+    renderUi(<LinkStatusBadge result={{status: 'broken', reason: 'malformed-url'}} />)
+    expect(screen.getByText('badge.malformed-url')).toBeInTheDocument()
+  })
 })
 
 describe('ReferenceStatusBadge', () => {
