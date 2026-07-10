@@ -15,7 +15,7 @@ export interface LinkOccurrence {
   href: string
 }
 
-const URL_PATTERN = /^https?:\/\//i
+export const URL_PATTERN = /^https?:\/\//i
 
 /** Whether `href` is already protocol-anchored (matches this module's `URL_PATTERN`) -
  * exported so callers (e.g. `scanExternalLinks`) can tell a real URL occurrence apart
