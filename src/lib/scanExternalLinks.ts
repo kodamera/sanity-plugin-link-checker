@@ -1,6 +1,7 @@
 import {checkUrl as defaultCheckUrl} from './checkUrl'
 import {runWithConcurrency} from './concurrencyPool'
 import {extractPortableTextLinks, type LinkOccurrence} from './extractPortableTextLinks'
+import {isInternalHost} from './internalHosts'
 import type {BrokenLink, LinkCheckerPluginConfig, UrlCheckResult} from './types'
 import {isMalformedUrl} from './urlSyntax'
 
@@ -92,7 +93,13 @@ export async function scanExternalLinks(
   docs: RawDoc[],
   config: Pick<
     LinkCheckerPluginConfig,
-    'concurrency' | 'timeoutMs' | 'hostDelayMs' | 'checkUrl' | 'excludeUrls'
+    | 'concurrency'
+    | 'timeoutMs'
+    | 'hostDelayMs'
+    | 'checkUrl'
+    | 'excludeUrls'
+    | 'skipInternalHostCheck'
+    | 'internalHostPatterns'
   >,
   onProgress?: (done: number, total: number) => void,
 ): Promise<{findings: BrokenLink[]; urlsChecked: number}> {
@@ -112,6 +119,12 @@ export async function scanExternalLinks(
 
   // Built per-call (not module-level) since later checks in this list may read from `config`.
   const preflightChecks: PreflightCheck[] = [{reason: 'malformed-url', test: isMalformedUrl}]
+  if (!config.skipInternalHostCheck) {
+    preflightChecks.push({
+      reason: 'internal-host',
+      test: (url) => isInternalHost(url, config.internalHostPatterns ?? []),
+    })
+  }
 
   const preflightResults = new Map<string, UrlCheckResult['reason']>()
   const urlsToCheck: string[] = []
