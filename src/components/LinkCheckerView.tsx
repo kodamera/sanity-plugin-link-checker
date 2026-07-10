@@ -1,23 +1,15 @@
 import {Box, Button, Container, Flex, Heading, Stack, Text} from '@sanity/ui'
-import {type JSX, type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {type JSX, type ReactNode, useCallback, useEffect, useMemo, useRef} from 'react'
 import {Translate, useClient, useTranslation, useWorkspace} from 'sanity'
 import {useRouter} from 'sanity/router'
 
 import {linkCheckerLocaleNamespace} from '../i18n'
-import {loadCachedResult, saveCachedResult} from '../lib/cache'
 import {buildEditPath} from '../lib/editRoute'
 import {groupDocFindings} from '../lib/groupDocFindings'
-import {readReport, REPORT_DOC_ID, toggleAcknowledged, writeReport} from '../lib/reportDocument'
-import {type PreviewDocumentValue, resolvePreviewDocuments} from '../lib/resolvePreviewDocuments'
-import {runScan} from '../lib/runScan'
-import {writeTrigger} from '../lib/triggerDocument'
-import {
-  getFindingKey,
-  type LinkCheckerPluginConfig,
-  type ScanFinding,
-  type ScanResult,
-} from '../lib/types'
+import {getFindingKey, type LinkCheckerPluginConfig, type ScanFinding} from '../lib/types'
 import {DocumentDialog} from './DocumentDialog'
+import {useScanReport} from './hooks/useScanReport'
+import {useScanRunner} from './hooks/useScanRunner'
 import {LinkResultsTabs} from './LinkResultsTabs'
 import {
   AwaitingFunctionBanner,
@@ -30,7 +22,6 @@ import {ScanSummaryCard} from './ScanSummaryCard'
 import {TabbedFindings} from './TabbedFindings'
 
 const API_VERSION = '2024-01-01'
-const AWAIT_FUNCTION_TIMEOUT_MS = 90_000
 
 /**
  * All headline numbers speak the same language as the result list: the heading counts
@@ -66,7 +57,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   const {t} = useTranslation(linkCheckerLocaleNamespace)
   const config = useMemo(() => props.config ?? {}, [props.config])
   const client = useClient({apiVersion: config.apiVersion ?? API_VERSION})
-  const {projectId, dataset} = client.config()
+  const {dataset} = client.config()
   const router = useRouter()
   const {basePath} = useWorkspace()
   const structureToolName = config.structureToolName ?? 'structure'
@@ -104,138 +95,29 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
   )
   const handleCloseDetails = useCallback(() => router.navigate({}), [router])
 
-  const [result, setResult] = useState<ScanResult | null>(() =>
-    projectId && dataset ? loadCachedResult(projectId, dataset) : null,
-  )
-  // Tagged with the scan it belongs to so "still loading" is derived (previews lag the
-  // current result) instead of stored - rows render native skeletons until the batch
-  // lands rather than flashing the raw type/id fallback and reflowing.
-  const [previews, setPreviews] = useState<{
-    forRanAt: string | null
-    docs: Map<string, PreviewDocumentValue>
-  }>({forRanAt: null, docs: new Map()})
-  const previewDocuments = previews.docs
-  const [scanning, setScanning] = useState(false)
-  const [progress, setProgress] = useState<{message: string; done: number; total: number} | null>(
-    null,
-  )
-  const [bannerDismissed, setBannerDismissed] = useState(false)
-  // Distinct from `scanning` (which only covers the quick browser-side pass): true from the
-  // moment the trigger doc is written until either a fresher report arrives or the timeout
-  // fires. We can't observe a Function actually running, only that its result never showed up.
-  const [awaitingFunction, setAwaitingFunction] = useState(false)
-  const awaitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const clearAwaitTimeout = useCallback(() => {
-    if (awaitTimeoutRef.current) {
-      clearTimeout(awaitTimeoutRef.current)
-      awaitTimeoutRef.current = null
-    }
-  }, [])
-
-  const handleDismissBanner = useCallback(() => setBannerDismissed(true), [])
-
-  const persistResult = useCallback(
-    (scanResult: ScanResult) => {
-      setResult(scanResult)
-      setBannerDismissed(false)
-      if (projectId && dataset) {
-        saveCachedResult(projectId, dataset, scanResult)
-      }
-    },
-    [projectId, dataset],
-  )
-
-  // The dataset's report document is the source of truth across environments (CI, other
-  // Studios, teammates, a deployed Document Function) - fetch it on mount, then subscribe
-  // live so a report written elsewhere (e.g. a Function finishing a triggered rescan a few
-  // seconds after this button is clicked) shows up here automatically, no reload needed.
+  // listener fires from useScanReport; runner state lives in useScanRunner - a ref bridges
+  // without re-subscribing (see the wiring after useScanRunner below).
+  const clearAwaitingRef = useRef<(() => void) | null>(null)
+  const {
+    result,
+    persistResult,
+    acknowledgedKeys,
+    handleToggleAcknowledged,
+    previewDocuments,
+    previewsLoading,
+    bannerDismissed,
+    handleDismissBanner,
+  } = useScanReport(client, () => clearAwaitingRef.current?.())
+  const {scanning, progress, awaitingFunction, clearAwaiting, handleRunScan} = useScanRunner({
+    client,
+    config,
+    persistResult,
+  })
+  // Refs must not be written during render - `clearAwaiting` is a stable useCallback
+  // reference, so this effect runs once on mount (and again only if it ever changes).
   useEffect(() => {
-    readReport(client).then((latest) => {
-      if (latest) persistResult(latest)
-    })
-
-    const subscription = client
-      .listen(`*[_id == $id]`, {id: REPORT_DOC_ID}, {visibility: 'query'})
-      .subscribe(() => {
-        readReport(client).then((latest) => {
-          if (!latest) return
-          persistResult(latest)
-          setAwaitingFunction(false)
-          clearAwaitTimeout()
-        })
-      })
-
-    return () => {
-      subscription.unsubscribe()
-      clearAwaitTimeout()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client])
-
-  useEffect(() => {
-    if (!result) return undefined
-    let cancelled = false
-    const ids = Array.from(new Set(result.findings.map((f) => f.fromId)))
-    resolvePreviewDocuments(client, ids).then((docs) => {
-      if (!cancelled) setPreviews({forRanAt: result.ranAt, docs})
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [result, client])
-
-  const previewsLoading = Boolean(result) && previews.forRanAt !== result?.ranAt
-
-  const handleRunScan = useCallback(async () => {
-    setScanning(true)
-    setProgress({message: 'Starting', done: 0, total: 1})
-    try {
-      const scanResult = await runScan(client, config, 'browser', (message, done, total) =>
-        setProgress({message, done, total}),
-      )
-      persistResult(scanResult)
-      await writeReport(client, scanResult)
-
-      // Harmless no-op if no Document Function is deployed - if one is, it'll rerun the
-      // scan server-side (no CORS) and the listener above picks up the real result whenever
-      // it finishes, which can take a while. We can't observe whether a Function actually
-      // exists or is running, only whether a fresher report ever shows up. The plugin
-      // config rides along so the Function scans with the same scope as sanity.config.ts.
-      writeTrigger(client, config)
-        .then(() => {
-          setAwaitingFunction(true)
-          clearAwaitTimeout()
-          awaitTimeoutRef.current = setTimeout(() => {
-            setAwaitingFunction(false)
-          }, AWAIT_FUNCTION_TIMEOUT_MS)
-        })
-        // eslint-disable-next-line no-empty-function
-        .catch(() => {})
-    } finally {
-      setScanning(false)
-      setProgress(null)
-    }
-  }, [client, config, persistResult, clearAwaitTimeout])
-
-  const acknowledgedKeys = useMemo(
-    () => new Set(result?.acknowledgedKeys ?? []),
-    [result?.acknowledgedKeys],
-  )
-
-  const handleToggleAcknowledged = useCallback(
-    (key: string) => {
-      setResult((prev) => {
-        if (!prev) return prev
-        const current = prev.acknowledgedKeys ?? []
-        const next = current.includes(key) ? current.filter((k) => k !== key) : [...current, key]
-        return {...prev, acknowledgedKeys: next}
-      })
-      // eslint-disable-next-line no-empty-function
-      toggleAcknowledged(client, key).catch(() => {})
-    },
-    [client],
-  )
+    clearAwaitingRef.current = clearAwaiting
+  }, [clearAwaiting])
 
   const brokenRefs = useMemo(
     () => result?.findings.filter((f) => f.kind === 'reference') ?? [],
