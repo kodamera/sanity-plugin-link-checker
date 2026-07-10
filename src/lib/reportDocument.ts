@@ -1,6 +1,6 @@
 import type {SanityClient} from '@sanity/client'
 
-import type {ScanResult} from './types'
+import {getFindingKey, type ScanResult} from './types'
 
 /**
  * A single, always-overwritten document (never one-per-scan) that both the CLI and the
@@ -15,17 +15,21 @@ export const REPORT_DOC_TYPE = 'linkCheckerReport'
  * Writing a new scan result replaces the whole document (createOrReplace), so
  * `acknowledgedKeys` from whatever report currently exists is carried forward here -
  * otherwise every re-scan would silently wipe out anything a user marked reviewed/fixed.
+ * Keys whose finding no longer appears in the new result (fixed, or no longer scanned)
+ * are dropped rather than carried forward forever.
  */
 export async function writeReport(client: SanityClient, result: ScanResult): Promise<void> {
   const existing = await client.fetch<{acknowledgedKeys?: string[]} | null>(
     `*[_id == $id][0]{acknowledgedKeys}`,
     {id: REPORT_DOC_ID},
   )
+  const currentKeys = new Set(result.findings.map(getFindingKey))
+  const acknowledgedKeys = (existing?.acknowledgedKeys ?? []).filter((key) => currentKeys.has(key))
   await client.createOrReplace({
     _id: REPORT_DOC_ID,
     _type: REPORT_DOC_TYPE,
     ...result,
-    acknowledgedKeys: existing?.acknowledgedKeys ?? [],
+    acknowledgedKeys,
   })
 }
 

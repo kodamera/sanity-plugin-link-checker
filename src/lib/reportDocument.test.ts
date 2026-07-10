@@ -2,7 +2,7 @@ import type {SanityClient} from '@sanity/client'
 import {describe, expect, it, vi} from 'vitest'
 
 import {toggleAcknowledged, writeReport} from './reportDocument'
-import type {ScanResult} from './types'
+import {getFindingKey, type ScanFinding, type ScanResult} from './types'
 
 const baseResult: ScanResult = {
   ranAt: '2026-07-09T00:00:00.000Z',
@@ -12,10 +12,36 @@ const baseResult: ScanResult = {
   source: 'cli',
 }
 
+const finding: ScanFinding = {
+  kind: 'reference',
+  fromId: 'doc1',
+  fromType: 'page',
+  fieldPath: 'related',
+  refId: 'missing-doc',
+}
+
 describe('writeReport', () => {
-  it('carries forward acknowledgedKeys from the existing report', async () => {
+  it('carries forward acknowledgedKeys whose finding still exists', async () => {
+    const key = getFindingKey(finding)
     const client = {
-      fetch: vi.fn().mockResolvedValue({acknowledgedKeys: ['k1']}),
+      fetch: vi.fn().mockResolvedValue({acknowledgedKeys: [key]}),
+      createOrReplace: vi.fn().mockResolvedValue(undefined),
+    } as unknown as SanityClient
+
+    await writeReport(client, {...baseResult, findings: [finding]})
+
+    expect(client.createOrReplace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: 'link-checker-report',
+        _type: 'linkCheckerReport',
+        acknowledgedKeys: [key],
+      }),
+    )
+  })
+
+  it('drops acknowledgedKeys whose finding no longer exists', async () => {
+    const client = {
+      fetch: vi.fn().mockResolvedValue({acknowledgedKeys: ['stale-key']}),
       createOrReplace: vi.fn().mockResolvedValue(undefined),
     } as unknown as SanityClient
 
@@ -25,7 +51,7 @@ describe('writeReport', () => {
       expect.objectContaining({
         _id: 'link-checker-report',
         _type: 'linkCheckerReport',
-        acknowledgedKeys: ['k1'],
+        acknowledgedKeys: [],
       }),
     )
   })
