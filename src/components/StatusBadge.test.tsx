@@ -57,6 +57,11 @@ describe('LinkStatusBadge', () => {
     renderUi(<LinkStatusBadge result={{status: 'broken', reason: 'missing-protocol'}} />)
     expect(screen.getByText('badge.missing-protocol')).toBeInTheDocument()
   })
+
+  it('shows a caution badge for an unlinked URL', () => {
+    renderUi(<LinkStatusBadge result={{status: 'unverifiable', reason: 'unlinked-url'}} />)
+    expect(screen.getByText('badge.unlinked-url')).toBeInTheDocument()
+  })
 })
 
 describe('ReferenceStatusBadge', () => {

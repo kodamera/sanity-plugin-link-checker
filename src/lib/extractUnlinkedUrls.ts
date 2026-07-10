@@ -1,5 +1,5 @@
-import {type PathSegment, formatFocusPath, formatPath} from './walkDocument'
 import {URL_PATTERN} from './extractPortableTextLinks'
+import {formatFocusPath, formatPath, type PathSegment} from './walkDocument'
 
 interface RawDoc {
   _id: string
