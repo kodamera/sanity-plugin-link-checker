@@ -2,7 +2,7 @@
 const resources = {
   'badge.blocked': 'Blocked',
   'badge.broken': 'Broken',
-  'badge.dangling-reference': 'Dangling reference',
+  'badge.dangling-reference': 'Broken ref',
   'badge.internal-host': 'Local/internal address',
   'badge.malformed-url': 'Invalid URL',
   'badge.missing-protocol': 'Missing protocol',

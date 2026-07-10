@@ -2,7 +2,7 @@
 const resources = {
   'badge.blocked': 'Blockerad',
   'badge.broken': 'Bruten',
-  'badge.dangling-reference': 'Bruten referens',
+  'badge.dangling-reference': 'Bruten ref',
   'badge.internal-host': 'Lokal/intern adress',
   'badge.malformed-url': 'Ogiltig URL',
   'badge.missing-protocol': 'Protokoll saknas',

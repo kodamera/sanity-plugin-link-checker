@@ -161,4 +161,29 @@ describe('ResultRow', () => {
     expect(screen.getByText('+1')).toBeInTheDocument()
     expect(screen.queryByText('500')).not.toBeInTheDocument()
   })
+
+  it('shows a collapsed +N chip counting every extra distinct result, not just the overflow', () => {
+    const groups = [
+      group(
+        linkFinding({href: 'https://example.com/one', result: {status: 'broken', httpStatus: 429}}),
+        ['k1'],
+      ),
+      group(
+        linkFinding({href: 'https://example.com/two', result: {status: 'broken', httpStatus: 404}}),
+        ['k2'],
+      ),
+      group(
+        linkFinding({
+          href: 'https://example.com/three',
+          result: {status: 'broken', httpStatus: 500},
+        }),
+        ['k3'],
+      ),
+    ]
+    renderUi(<ResultRow groups={groups} {...defaultProps()} />)
+
+    // Two extra distinct results beyond the primary (429) - the collapsed-state chip counts
+    // all of them, not just what's left over after the expanded reveal's own "+1" overflow.
+    expect(screen.getByText('+2')).toBeInTheDocument()
+  })
 })

@@ -11,7 +11,7 @@
 [![CI](https://github.com/kodamera/sanity-plugin-link-checker/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/kodamera/sanity-plugin-link-checker/actions/workflows/main.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Finds broken links and dangling references across a Sanity dataset and shows them in a
+Finds broken links and references across a Sanity dataset and shows them in a
 Studio tool, with one click to jump straight to the offending document. Dangling-reference
 checks work out of the box. **Accurate external-link checks need the included Document
 Function** — one command to deploy — since browser-only checks are CORS-limited and mostly

@@ -210,47 +210,67 @@ export function isActionable(finding: ScanFinding, acknowledged: boolean): boole
   return finding.kind === 'reference' || finding.result.status !== 'ok' || acknowledged
 }
 
-// Concrete badges stay legible up to this many distinct results stacked side by side;
-// beyond it the overflow collapses into a single "+N" chip rather than a wall of pills.
-const MAX_STACKED_BADGES = 2
+// Concrete badges stay legible up to this many distinct results revealed on hover; beyond
+// it the remainder collapses into a single "+N" chip rather than a wall of pills.
+const MAX_REVEALED_BADGES = 2
+
+// A tab only ever mixes results within one status category (see AggregateStatusBadge's own
+// doc comment), so every badge in a cluster always shares this tone - used for the "+N"
+// collapsed-state chip, which has no single concrete result of its own to read a tone from.
+const TONE_FOR_STATUS: Record<UrlCheckResult['status'], 'critical' | 'default' | 'positive'> = {
+  broken: 'critical',
+  unverifiable: 'default',
+  ok: 'positive',
+}
 
 function resultIdentity(r: UrlCheckResult): string {
   return `${r.status}:${r.httpStatus ?? ''}:${r.reason ?? ''}`
 }
 
 /**
- * Up to MAX_STACKED_BADGES concrete badges (real codes, e.g. 429/404), overlapped like an
- * avatar stack at rest and spread apart on hover/focus so each is independently readable
- * and keeps its own tooltip - same idea as Sanity's own overlapping draft/published dots,
- * just for an open-ended set of values instead of two fixed ones. Devices with no hover
- * (touch) get the spread-out layout directly via the `lc-badge-stack` CSS in LinkCheckerView
- * - there's nothing to reveal on hover if hover doesn't exist.
+ * One concrete badge (the first distinct result) plus, when there's more than one distinct
+ * result, a "+N" chip - real values only ever appear via hover/focus reveal, never
+ * overlapped. Text-length pills don't stack cleanly like fixed-size avatar circles do (a
+ * negative-margin overlap tried first here clipped wider labels like "Timeout" against their
+ * neighbor) - showing vs. hiding two non-overlapping groups sidesteps that entirely. Devices
+ * with no hover (touch) get the revealed group directly via the `lc-badge-stack` CSS in
+ * LinkCheckerView - there's no hover gesture to reveal it with.
  */
 function StackedStatusBadges({results}: {results: UrlCheckResult[]}): JSX.Element {
   const {t} = useTranslation(linkCheckerLocaleNamespace)
   const distinct = Array.from(new Map(results.map((r) => [resultIdentity(r), r])).values())
-  const shown = distinct.slice(0, MAX_STACKED_BADGES)
-  const overflow = distinct.length - shown.length
+  const [primary, ...rest] = distinct
+  const revealed = rest.slice(0, MAX_REVEALED_BADGES - 1)
+  const overflow = rest.length - revealed.length
+  const extraCount = distinct.length - 1
 
   return (
     <span className="lc-badge-stack">
-      {shown.map((result) => (
-        <span className="lc-badge-stack-item" key={resultIdentity(result)}>
-          <LinkStatusBadge result={result} />
-        </span>
-      ))}
-      {overflow > 0 && (
-        <span className="lc-badge-stack-item">
-          <Tooltip
-            content={<Text size={1}>{t('status.mixed-statuses')}</Text>}
-            placement="top"
-            portal
-          >
-            <Badge tone="critical" fontSize={1}>
-              +{overflow}
+      <LinkStatusBadge result={primary} />
+      {extraCount > 0 && (
+        <>
+          <span className="lc-badge-stack-collapsed">
+            <Badge tone={TONE_FOR_STATUS[primary.status]} fontSize={1}>
+              +{extraCount}
             </Badge>
-          </Tooltip>
-        </span>
+          </span>
+          <span className="lc-badge-stack-expanded">
+            {revealed.map((result) => (
+              <LinkStatusBadge result={result} key={resultIdentity(result)} />
+            ))}
+            {overflow > 0 && (
+              <Tooltip
+                content={<Text size={1}>{t('status.mixed-statuses')}</Text>}
+                placement="top"
+                portal
+              >
+                <Badge tone={TONE_FOR_STATUS[primary.status]} fontSize={1}>
+                  +{overflow}
+                </Badge>
+              </Tooltip>
+            )}
+          </span>
+        </>
       )}
     </span>
   )
