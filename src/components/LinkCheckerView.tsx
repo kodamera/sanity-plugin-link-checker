@@ -288,7 +288,16 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
            transform animate, both compositor-only properties a browser can run smoothly off
            the main thread with no layout cost. Devices with no hover (touch) get the
            expanded group directly - there's no hover gesture to reveal it with. */
+        /* CSS gap inserts space between EVERY adjacent flex item regardless of its size,
+           including a max-width: 0 one - collapsed/expanded as direct children of
+           .lc-badge-stack (both always rendered, only one ever visible) would double the
+           gap in the expanded state: 4px primary-to-collapsed (invisible, but still
+           counted) plus another 4px collapsed-to-expanded. The .lc-badge-stack-reveal
+           wrapper counts as exactly one item against the outer gap regardless of which of
+           its two children is currently visible - gap: 0 internally, since collapsed and
+           expanded are mutually exclusive and never need space between each other. */
         .lc-badge-stack { display: inline-flex; align-items: center; gap: 4px; }
+        .lc-badge-stack-reveal { display: inline-flex; align-items: center; gap: 0; }
         .lc-badge-stack-collapsed, .lc-badge-stack-expanded {
           display: inline-flex;
           align-items: center;
