@@ -67,3 +67,8 @@ plans
 
 # Sanity function build output
 **/.build
+
+# Env files (secrets - never commit)
+.env
+.env.local
+.env.*.local
