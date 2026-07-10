@@ -1,6 +1,6 @@
 {
   "name": "sanity-plugin-link-checker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Scans a Sanity dataset for dangling document references and dead external links, with a Studio tool to review and jump to the offending documents.",
   "keywords": [
     "sanity",
