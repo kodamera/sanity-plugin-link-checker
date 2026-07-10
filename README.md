@@ -16,6 +16,27 @@ accurate external-link results too.
 
 ![The Link Checker tool showing broken links and dangling references](assets/screenshot-results.jpg)
 
+## Table of contents
+
+- [Features](#features)
+- [Why check links in the CMS instead of crawling the site?](#why-check-links-in-the-cms-instead-of-crawling-the-site)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Accurate external checks: deploy the Document Function (once)](#accurate-external-checks-deploy-the-document-function-once)
+  - [Upgrading an already-deployed Function](#upgrading-an-already-deployed-function)
+- [CLI (CI pipelines and no-Function setups)](#cli-ci-pipelines-and-no-function-setups)
+- [Configuration](#configuration)
+- [Advanced](#advanced)
+  - [Custom URL checking via a proxy](#custom-url-checking-via-a-proxy)
+  - [Using the scanning logic in your own code](#using-the-scanning-logic-in-your-own-code)
+  - [Why browser checks are limited (CORS)](#why-browser-checks-are-limited-cors)
+  - [Adding or overriding a language](#adding-or-overriding-a-language)
+  - [How results are stored](#how-results-are-stored)
+  - [Uninstalling](#uninstalling)
+- [License](#license)
+- [Develop & test](#develop--test)
+  - [Release New Version](#release-new-version)
+
 ## Features
 
 - **Finds broken external links** — every URL in your content, checked over HTTP with real status codes (via the included Document Function or CLI).
