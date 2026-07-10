@@ -8,6 +8,7 @@ const resources = {
   'badge.missing-protocol': 'Missing protocol',
   'badge.ok': 'OK',
   'badge.timeout': 'Timeout',
+  'badge.unlinked-url': 'Not a link',
   'badge.unverifiable': 'Unverifiable',
   'banner.awaiting-function':
     "Results above are from the quick browser-side pass. If a Document Function is deployed, it's rerunning the check server-side now (can take a couple of minutes) and will replace these automatically when done.",
@@ -85,6 +86,8 @@ const resources = {
   'status.status-unconfirmed': 'Status unconfirmed',
   'status.unexpected-status': 'Unexpected status {{status}}',
   'status.unknown-server-error': 'Unknown server error',
+  'status.unlinked-url':
+    "This looks like a URL but isn't linked - it'll show as plain, unclickable text on the site",
   'summary.coverage': '{{documents}} documents and {{urls}} links checked',
   'summary.documents-with-issues_one': '{{count}} document with issues',
   'summary.documents-with-issues_other': '{{count}} documents with issues',
