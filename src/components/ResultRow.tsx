@@ -214,15 +214,6 @@ export function isActionable(finding: ScanFinding, acknowledged: boolean): boole
 // it the remainder collapses into a single "+N" chip rather than a wall of pills.
 const MAX_REVEALED_BADGES = 2
 
-// A tab only ever mixes results within one status category (see AggregateStatusBadge's own
-// doc comment), so every badge in a cluster always shares this tone - used for the "+N"
-// collapsed-state chip, which has no single concrete result of its own to read a tone from.
-const TONE_FOR_STATUS: Record<UrlCheckResult['status'], 'critical' | 'default' | 'positive'> = {
-  broken: 'critical',
-  unverifiable: 'default',
-  ok: 'positive',
-}
-
 function resultIdentity(r: UrlCheckResult): string {
   return `${r.status}:${r.httpStatus ?? ''}:${r.reason ?? ''}`
 }
@@ -248,9 +239,12 @@ function StackedStatusBadges({results}: {results: UrlCheckResult[]}): JSX.Elemen
     <span className="lc-badge-stack">
       <LinkStatusBadge result={primary} />
       {extraCount > 0 && (
-        <>
+        <span className="lc-badge-stack-reveal">
           <span className="lc-badge-stack-collapsed">
-            <Badge tone={TONE_FOR_STATUS[primary.status]} fontSize={1}>
+            {/* Neutral tone deliberately - this is a count, not a status verdict. The
+                concrete badge to its left already carries the real severity color; coloring
+                the count too would read as "the +N itself is critical." */}
+            <Badge tone="default" fontSize={1} padding={2}>
               +{extraCount}
             </Badge>
           </span>
@@ -264,13 +258,13 @@ function StackedStatusBadges({results}: {results: UrlCheckResult[]}): JSX.Elemen
                 placement="top"
                 portal
               >
-                <Badge tone={TONE_FOR_STATUS[primary.status]} fontSize={1}>
+                <Badge tone="default" fontSize={1} padding={2}>
                   +{overflow}
                 </Badge>
               </Tooltip>
             )}
           </span>
-        </>
+        </span>
       )}
     </span>
   )

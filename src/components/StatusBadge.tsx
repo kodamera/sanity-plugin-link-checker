@@ -26,7 +26,7 @@ export function ReferenceStatusBadge(): JSX.Element {
 
   return (
     <StatusTooltip description={t('status.points-to-deleted-document')}>
-      <Badge tone="critical" fontSize={1}>
+      <Badge tone="critical" fontSize={1} padding={2}>
         {t('badge.dangling-reference')}
       </Badge>
     </StatusTooltip>
@@ -138,7 +138,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
   if (result.status === 'ok') {
     return (
       <StatusTooltip description={description}>
-        <Badge tone="positive" fontSize={1}>
+        <Badge tone="positive" fontSize={1} padding={2}>
           {result.httpStatus ?? t('badge.ok')}
         </Badge>
       </StatusTooltip>
@@ -152,7 +152,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
     if (result.reason === 'unlinked-url') {
       return (
         <StatusTooltip description={description}>
-          <Badge tone="caution" fontSize={1}>
+          <Badge tone="caution" fontSize={1} padding={2}>
             {t('badge.unlinked-url')}
           </Badge>
         </StatusTooltip>
@@ -164,7 +164,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
     if (result.reason === 'blocked') {
       return (
         <StatusTooltip description={description}>
-          <Badge tone="caution" fontSize={1}>
+          <Badge tone="caution" fontSize={1} padding={2}>
             {result.httpStatus ?? t('badge.blocked')}
           </Badge>
         </StatusTooltip>
@@ -172,7 +172,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
     }
     return (
       <StatusTooltip description={description}>
-        <Badge tone="default" fontSize={1}>
+        <Badge tone="default" fontSize={1} padding={2}>
           {t('badge.unverifiable')}
         </Badge>
       </StatusTooltip>
@@ -182,7 +182,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
   if (result.reason === 'internal-host') {
     return (
       <StatusTooltip description={description}>
-        <Badge tone="critical" fontSize={1}>
+        <Badge tone="critical" fontSize={1} padding={2}>
           {t('badge.internal-host')}
         </Badge>
       </StatusTooltip>
@@ -192,7 +192,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
   if (result.reason === 'malformed-url') {
     return (
       <StatusTooltip description={description}>
-        <Badge tone="critical" fontSize={1}>
+        <Badge tone="critical" fontSize={1} padding={2}>
           {t('badge.malformed-url')}
         </Badge>
       </StatusTooltip>
@@ -202,7 +202,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
   if (result.reason === 'missing-protocol') {
     return (
       <StatusTooltip description={description}>
-        <Badge tone="critical" fontSize={1}>
+        <Badge tone="critical" fontSize={1} padding={2}>
           {t('badge.missing-protocol')}
         </Badge>
       </StatusTooltip>
@@ -212,7 +212,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
   if (result.reason === 'timeout') {
     return (
       <StatusTooltip description={description}>
-        <Badge tone="critical" fontSize={1}>
+        <Badge tone="critical" fontSize={1} padding={2}>
           {t('badge.timeout')}
         </Badge>
       </StatusTooltip>
@@ -221,7 +221,7 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
 
   return (
     <StatusTooltip description={description}>
-      <Badge tone="critical" fontSize={1}>
+      <Badge tone="critical" fontSize={1} padding={2}>
         {result.httpStatus ?? t('badge.broken')}
       </Badge>
     </StatusTooltip>

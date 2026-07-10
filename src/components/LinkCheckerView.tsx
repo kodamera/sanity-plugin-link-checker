@@ -275,21 +275,56 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
         /* Mixed-status badge cluster (AggregateStatusBadge/StackedStatusBadges): one
            concrete badge plus either a "+N" chip (collapsed) or the remaining real badges
            (expanded) - never both, never overlapped, so nothing ever clips a neighbor's
-           text. Devices with no hover (touch) get the expanded group directly - there's no
-           hover gesture to reveal it with. */
+           text. Both groups share the same grid cell and crossfade rather than hard-swap
+           via display, so revealing on hover doesn't jump. Devices with no hover (touch)
+           get the expanded group directly - there's no hover gesture to reveal it with. */
         .lc-badge-stack { display: inline-flex; align-items: center; gap: 4px; }
-        .lc-badge-stack-expanded { display: none; align-items: center; gap: 4px; }
-        .lc-badge-stack-collapsed { display: none; }
+        .lc-badge-stack-reveal { display: inline-grid; }
+        .lc-badge-stack-collapsed, .lc-badge-stack-expanded {
+          grid-area: 1 / 1;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          transition: opacity 150ms ease;
+        }
+        .lc-badge-stack-expanded { opacity: 0; pointer-events: none; }
+
+        /* Every badge in this tool shows a status code or count at some point (200, 404,
+           +1, ...) - tabular figures keep digit widths consistent instead of a narrow "1"
+           sitting oddly inside a pill sized for "4"/"0". Sanity's Badge passes fontSize down
+           to an inner Text as an explicit size token (not inherited), so only a
+           descendant-targeting !important rule reliably reaches it - global rather than
+           .lc-row-scoped since the Details dialog (badges here too) likely portals its
+           content outside this view's DOM subtree, out of reach of an ancestor-scoped rule. */
+        [data-ui="Badge"] * { font-size: 0.75rem !important; font-variant-numeric: tabular-nums; }
+
+        /* The "+N" chip is 1-2 digits, always - a plain Badge (sized for arbitrary text)
+           reads as a squat, oddly-shaped pill next to a real code/label. Fixed min-width and
+           centered text make it read as a compact counter instead. */
+        .lc-badge-stack-collapsed [data-ui="Badge"],
+        .lc-badge-stack-expanded [data-ui="Badge"]:last-child:not(:first-child) {
+          min-width: 1.75em;
+          text-align: center;
+        }
 
         @media (hover: hover) {
-          .lc-badge-stack-collapsed { display: inline-flex; }
-          .lc-badge-stack:hover .lc-badge-stack-collapsed,
-          .lc-badge-stack:focus-within .lc-badge-stack-collapsed { display: none; }
-          .lc-badge-stack:hover .lc-badge-stack-expanded,
-          .lc-badge-stack:focus-within .lc-badge-stack-expanded { display: inline-flex; }
+          .lc-badge-stack-reveal:hover .lc-badge-stack-collapsed,
+          .lc-badge-stack-reveal:focus-within .lc-badge-stack-collapsed {
+            opacity: 0;
+            pointer-events: none;
+          }
+          .lc-badge-stack-reveal:hover .lc-badge-stack-expanded,
+          .lc-badge-stack-reveal:focus-within .lc-badge-stack-expanded {
+            opacity: 1;
+            pointer-events: auto;
+          }
         }
         @media not (hover: hover) {
-          .lc-badge-stack-expanded { display: inline-flex; }
+          .lc-badge-stack-collapsed { display: none; }
+          .lc-badge-stack-expanded { opacity: 1; pointer-events: auto; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lc-badge-stack-collapsed, .lc-badge-stack-expanded { transition: none; }
         }
       `}</style>
       <Stack gap={[4, 4, 5]} style={{width: '100%', minWidth: 0}}>
@@ -366,7 +401,7 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                 the same tight group as the summary card/banners above. A single child (only
                 one of the two present) gets no extra gap either side - Stack only spaces
                 between children that actually render. */}
-            <Stack gap={6}>
+            <Stack gap={5}>
               {brokenRefs.length > 0 && (
                 <Stack gap={4}>
                   <Stack gap={2}>
