@@ -285,9 +285,11 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          transition: opacity 150ms ease;
+          transition: opacity 150ms ease, transform 150ms ease;
         }
-        .lc-badge-stack-expanded { opacity: 0; pointer-events: none; }
+        /* Hidden state slides in from the left as it fades in (and back out the same way
+           leaving), rather than a plain crossfade in place. */
+        .lc-badge-stack-expanded { opacity: 0; transform: translateX(-6px); pointer-events: none; }
 
         /* Every badge in this tool shows a status code or count at some point (200, 404,
            +1, ...) - tabular figures keep digit widths consistent instead of a narrow "1"
@@ -308,20 +310,24 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
         }
 
         @media (hover: hover) {
-          .lc-badge-stack-reveal:hover .lc-badge-stack-collapsed,
-          .lc-badge-stack-reveal:focus-within .lc-badge-stack-collapsed {
+          /* Trigger is the whole cluster (.lc-badge-stack, includes the always-visible
+             primary badge), not just the collapsed/expanded box - hovering the primary
+             badge itself must reveal the rest too, not only the "+N" chip's own bounds. */
+          .lc-badge-stack:hover .lc-badge-stack-collapsed,
+          .lc-badge-stack:focus-within .lc-badge-stack-collapsed {
             opacity: 0;
             pointer-events: none;
           }
-          .lc-badge-stack-reveal:hover .lc-badge-stack-expanded,
-          .lc-badge-stack-reveal:focus-within .lc-badge-stack-expanded {
+          .lc-badge-stack:hover .lc-badge-stack-expanded,
+          .lc-badge-stack:focus-within .lc-badge-stack-expanded {
             opacity: 1;
+            transform: translateX(0);
             pointer-events: auto;
           }
         }
         @media not (hover: hover) {
           .lc-badge-stack-collapsed { display: none; }
-          .lc-badge-stack-expanded { opacity: 1; pointer-events: auto; }
+          .lc-badge-stack-expanded { opacity: 1; transform: translateX(0); pointer-events: auto; }
         }
         @media (prefers-reduced-motion: reduce) {
           .lc-badge-stack-collapsed, .lc-badge-stack-expanded { transition: none; }
