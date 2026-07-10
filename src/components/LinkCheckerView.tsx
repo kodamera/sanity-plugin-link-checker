@@ -6,7 +6,12 @@ import {useRouter} from 'sanity/router'
 import {linkCheckerLocaleNamespace} from '../i18n'
 import {buildEditPath} from '../lib/editRoute'
 import {groupDocFindings} from '../lib/groupDocFindings'
-import {getFindingKey, type LinkCheckerPluginConfig, type ScanFinding} from '../lib/types'
+import {
+  getFindingKey,
+  type LinkCheckerPluginConfig,
+  type ScanFinding,
+  type ScanResult,
+} from '../lib/types'
 import {DocumentDialog} from './DocumentDialog'
 import {useScanReport} from './hooks/useScanReport'
 import {useScanRunner} from './hooks/useScanRunner'
@@ -32,7 +37,7 @@ function summarizeHeadline(
   activeBrokenRefs: ScanFinding[],
   activeBrokenLinks: ScanFinding[],
   t: (key: string, values?: Record<string, number>) => string,
-): {issueCount: number; issueBreakdown: string | null} {
+): {issueCount: number; issueBreakdown: string | null; distinctBrokenRefs: number} {
   const groupKeyOf = (f: ScanFinding) =>
     `${f.kind}:${f.fromId}:${f.kind === 'reference' ? f.refId : f.href}`
   const issueCount = new Set([...activeBrokenRefs, ...activeBrokenLinks].map((f) => f.fromId)).size
@@ -42,7 +47,64 @@ function summarizeHeadline(
     distinctBrokenLinks > 0 ? t('findings.broken-links', {count: distinctBrokenLinks}) : null,
     distinctBrokenRefs > 0 ? t('findings.broken-references', {count: distinctBrokenRefs}) : null,
   ].filter(Boolean)
-  return {issueCount, issueBreakdown: breakdownParts.length > 0 ? breakdownParts.join(' · ') : null}
+  return {
+    issueCount,
+    issueBreakdown: breakdownParts.length > 0 ? breakdownParts.join(' · ') : null,
+    distinctBrokenRefs,
+  }
+}
+
+/** Local, subtle stand-in for the global summary card while it's suppressed
+ * (holdingExternalLinks - see ScanSummaryCard's own render condition): the reference check
+ * itself is already complete and accurate, it just shouldn't be framed as a whole-scan
+ * verdict until links finish too. Own component so its branch doesn't count against
+ * LinkCheckerView's own complexity budget. */
+function RefsSubtitle({
+  holdingExternalLinks,
+  distinctBrokenRefs,
+  t,
+}: {
+  holdingExternalLinks: boolean
+  distinctBrokenRefs: number
+  t: (key: string, values?: Record<string, number>) => string
+}): JSX.Element | null {
+  if (!holdingExternalLinks || distinctBrokenRefs === 0) return null
+  return (
+    <Text size={1} muted>
+      {t('findings.broken-references', {count: distinctBrokenRefs})}
+    </Text>
+  )
+}
+
+/** Suppressed while holdingExternalLinks: a browser-only result's headline counts are
+ * provisional (unverifiable links may resolve to broken once the Function replaces this
+ * result), so a confident-looking number here would be misleading for the ~90s window it's
+ * live. The pending banner below already covers this case; a previous, complete result
+ * stays visible via the separate showingPreviousResults dim-not-hide path (unaffected
+ * here). Own component so its branch doesn't count against LinkCheckerView's complexity
+ * budget. */
+function MaybeScanSummaryCard({
+  result,
+  holdingExternalLinks,
+  issueCount,
+  issueBreakdown,
+}: {
+  result: ScanResult | null
+  holdingExternalLinks: boolean
+  issueCount: number
+  issueBreakdown: string | null
+}): JSX.Element | null {
+  if (!result || holdingExternalLinks) return null
+  return (
+    <ScanSummaryCard
+      issueCount={issueCount}
+      issueBreakdown={issueBreakdown}
+      ranAt={result.ranAt}
+      source={result.source}
+      documentsScanned={result.documentsScanned}
+      urlsChecked={result.urlsChecked}
+    />
+  )
 }
 
 function DatasetName({children}: {children?: ReactNode}): JSX.Element {
@@ -148,7 +210,11 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
     [linkFindings],
   )
 
-  const {issueCount, issueBreakdown} = summarizeHeadline(activeBrokenRefs, activeBrokenLinks, t)
+  const {issueCount, issueBreakdown, distinctBrokenRefs} = summarizeHeadline(
+    activeBrokenRefs,
+    activeBrokenLinks,
+    t,
+  )
 
   const showLinkSection = useMemo(
     () =>
@@ -205,6 +271,32 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
       <style>{`
         .lc-row-preview [data-testid="default-preview"] { padding-left: 0; }
         .lc-row:hover { background-color: color-mix(in srgb, var(--card-fg-color) 5%, transparent); }
+
+        /* Mixed-status badge cluster (AggregateStatusBadge/StackedStatusBadges): a ring in
+           the row's own background color keeps overlapped edges readable, same technique
+           avatar stacks use. Default state IS the spread-out layout - devices with no
+           hover (touch) never get anything else, there's nothing to reveal on hover. */
+        .lc-badge-stack { display: inline-flex; align-items: center; }
+        .lc-badge-stack-item {
+          position: relative;
+          border-radius: 9999px;
+          box-shadow: 0 0 0 2px var(--card-bg-color);
+        }
+        .lc-badge-stack-item:not(:first-child) { margin-left: 4px; }
+
+        /* Only devices that can actually hover get the overlap-then-separate treatment -
+           it's a reveal gesture, and there's no equivalent gesture on touch. */
+        @media (hover: hover) {
+          .lc-badge-stack-item { transition: margin-left 120ms ease; }
+          .lc-badge-stack-item:not(:first-child) { margin-left: -10px; z-index: 0; }
+          .lc-badge-stack:hover .lc-badge-stack-item:not(:first-child),
+          .lc-badge-stack:focus-within .lc-badge-stack-item:not(:first-child) {
+            margin-left: 4px;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lc-badge-stack-item { transition: none; }
+        }
       `}</style>
       <Stack gap={[4, 4, 5]} style={{width: '100%', minWidth: 0}}>
         {/* Column on narrow screens, not a row that hopes flex-wrap kicks in at the right
@@ -265,16 +357,12 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
           }
         >
           <Stack gap={4}>
-            {result && (
-              <ScanSummaryCard
-                issueCount={issueCount}
-                issueBreakdown={issueBreakdown}
-                ranAt={result.ranAt}
-                source={result.source}
-                documentsScanned={result.documentsScanned}
-                urlsChecked={result.urlsChecked}
-              />
-            )}
+            <MaybeScanSummaryCard
+              result={result}
+              holdingExternalLinks={holdingExternalLinks}
+              issueCount={issueCount}
+              issueBreakdown={issueBreakdown}
+            />
 
             {!scanning && awaitingFunction && !holdingExternalLinks && <AwaitingFunctionBanner />}
 
@@ -287,6 +375,11 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
                   <Text size={1} muted>
                     {t('findings.broken-references.description')}
                   </Text>
+                  <RefsSubtitle
+                    holdingExternalLinks={holdingExternalLinks}
+                    distinctBrokenRefs={distinctBrokenRefs}
+                    t={t}
+                  />
                 </Stack>
                 <TabbedFindings
                   idPrefix="broken-refs"
