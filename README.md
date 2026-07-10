@@ -7,7 +7,9 @@
 
 # sanity-plugin-link-checker
 
-<!-- TODO(plan-009): CI + npm version badges -->
+[![npm version](https://img.shields.io/npm/v/sanity-plugin-link-checker.svg)](https://www.npmjs.com/package/sanity-plugin-link-checker)
+[![CI](https://github.com/kodamera/sanity-plugin-link-checker/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/kodamera/sanity-plugin-link-checker/actions/workflows/main.yml)
+[![License: MIT](https://img.shields.io/npm/l/sanity-plugin-link-checker.svg)](LICENSE)
 
 Finds broken links and dangling references across a Sanity dataset and shows them in a
 Studio tool, with one click to jump straight to the offending document. Dangling-reference
@@ -178,7 +180,7 @@ found, and `--out <path>` for a local JSON copy in CI logs:
 npx sanity-plugin-link-checker --token $SANITY_AUTH_TOKEN --fail-on-findings --out report.json
 ```
 
-Run `npx sanity-plugin-link-checker --help` for all options (`--concurrency`, `--timeout`, `--host-delay`, `--exclude-types`, `--exclude-urls`, `--exclude-url-pattern`, `--api-version`).
+Run `npx sanity-plugin-link-checker --help` for all options (`--concurrency`, `--timeout`, `--host-delay`, `--exclude-types`, `--exclude-urls`, `--exclude-url-pattern`, `--ignore-drafts-older-than`, `--api-version`).
 
 ## Configuration
 
@@ -243,8 +245,11 @@ something, unlike the CLI.
 ### Using the scanning logic in your own code
 
 The Function, the CLI, and the Studio plugin all share the same scanning code, exported
-React-free from `sanity-plugin-link-checker/core` (`runScan`, `writeReport`, `readReport`,
-`writeTrigger`) for use in your own scripts or Functions.
+React-free from `sanity-plugin-link-checker/core` for use in your own scripts or
+Functions: `runScan`, `writeReport`, `readReport`, `writeTrigger`, and `summarizeResult`
+(the same broken/unverifiable counting logic the CLI's `--fail-on-findings` gate uses).
+See [`src/core.ts`](src/core.ts) for the full list, including the acknowledgement and
+trigger-config helpers.
 
 ### Why browser checks are limited (CORS)
 
