@@ -122,6 +122,7 @@ function describeLinkStatus(
     return t('status.status-unconfirmed')
   }
 
+  if (result.reason === 'internal-host') return t('status.internal-host')
   if (result.reason === 'malformed-url') return t('status.malformed-url')
   if (result.reason === 'timeout') return t('status.server-did-not-respond')
   if (result.reason === 'network') return t('status.could-not-connect')
@@ -159,6 +160,16 @@ export function LinkStatusBadge({result}: {result: UrlCheckResult}): JSX.Element
       <StatusTooltip description={description}>
         <Badge tone="default" fontSize={1}>
           {t('badge.unverifiable')}
+        </Badge>
+      </StatusTooltip>
+    )
+  }
+
+  if (result.reason === 'internal-host') {
+    return (
+      <StatusTooltip description={description}>
+        <Badge tone="critical" fontSize={1}>
+          {t('badge.internal-host')}
         </Badge>
       </StatusTooltip>
     )

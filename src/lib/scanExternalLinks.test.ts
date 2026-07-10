@@ -63,6 +63,50 @@ describe('scanExternalLinks excludeUrls', () => {
   })
 })
 
+describe('scanExternalLinks internal hosts', () => {
+  it('flags internal-host URLs without calling checkUrl, but still checks public ones', async () => {
+    const docs = [
+      {_id: 'a', _type: 'post', good: 'https://example.com', bad: 'http://localhost:3000/x'},
+    ]
+    const checked: string[] = []
+
+    const {findings} = await scanExternalLinks(
+      docs,
+      {
+        checkUrl: async (url) => {
+          checked.push(url)
+          return {status: 'ok' as const}
+        },
+      },
+      undefined,
+    )
+
+    expect(checked).toEqual(['https://example.com'])
+    const badFinding = findings.find((f) => f.href === 'http://localhost:3000/x')
+    expect(badFinding?.result).toEqual({status: 'broken', reason: 'internal-host'})
+  })
+
+  it('skips the internal-host check when skipInternalHostCheck is set', async () => {
+    const docs = [{_id: 'a', _type: 'post', link: 'http://localhost:3000/x'}]
+    const checked: string[] = []
+
+    const {findings} = await scanExternalLinks(
+      docs,
+      {
+        skipInternalHostCheck: true,
+        checkUrl: async (url) => {
+          checked.push(url)
+          return {status: 'ok' as const}
+        },
+      },
+      undefined,
+    )
+
+    expect(checked).toEqual(['http://localhost:3000/x'])
+    expect(findings[0].result).toEqual({status: 'ok'})
+  })
+})
+
 describe('interleaveByHost', () => {
   it('round-robins URLs across hosts so no host is queued back-to-back', () => {
     const urls = [

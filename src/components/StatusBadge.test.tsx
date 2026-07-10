@@ -47,6 +47,11 @@ describe('LinkStatusBadge', () => {
     renderUi(<LinkStatusBadge result={{status: 'broken', reason: 'malformed-url'}} />)
     expect(screen.getByText('badge.malformed-url')).toBeInTheDocument()
   })
+
+  it('shows a distinct badge for an internal-host link', () => {
+    renderUi(<LinkStatusBadge result={{status: 'broken', reason: 'internal-host'}} />)
+    expect(screen.getByText('badge.internal-host')).toBeInTheDocument()
+  })
 })
 
 describe('ReferenceStatusBadge', () => {

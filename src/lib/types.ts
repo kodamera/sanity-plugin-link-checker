@@ -4,7 +4,8 @@ export interface UrlCheckResult {
   status: UrlCheckStatus
   /** HTTP status code, when one was actually readable. */
   httpStatus?: number
-  reason?: 'timeout' | 'cors' | 'network' | 'http-error' | 'blocked' | 'malformed-url'
+  reason?:
+    'timeout' | 'cors' | 'network' | 'http-error' | 'blocked' | 'malformed-url' | 'internal-host'
 }
 
 export interface LinkCheckerPluginConfig {
@@ -46,6 +47,22 @@ export interface LinkCheckerPluginConfig {
    * fresh drafts. Default: no age limit (all drafts scanned).
    */
   ignoreDraftsOlderThanDays?: number
+  /**
+   * Skip flagging links to localhost/private-network hosts. Default: false
+   * (the check runs). Turn this on only if your Sanity project genuinely
+   * serves internal-only content that's expected to link to private
+   * addresses (e.g. a company intranet) - for an ordinary public site, an
+   * internal-host link in published content is always a mistake.
+   */
+  skipInternalHostCheck?: boolean
+  /**
+   * Extra hostname patterns to flag as internal, beyond the built-in
+   * loopback/private/link-local ranges - e.g. your own staging subdomain
+   * (`'staging.example.com'`). A string matches as a substring of the
+   * hostname (not the full URL - a path segment containing "staging" won't
+   * match); a RegExp is tested against the hostname the same way.
+   */
+  internalHostPatterns?: (string | RegExp)[]
 }
 
 /** Publish state of the document a finding came from, at scan time. */

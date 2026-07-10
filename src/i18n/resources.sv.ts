@@ -3,6 +3,7 @@ const resources = {
   'badge.blocked': 'Blockerad',
   'badge.broken': 'Bruten',
   'badge.dangling-reference': 'Bruten referens',
+  'badge.internal-host': 'Lokal/intern adress',
   'badge.malformed-url': 'Ogiltig URL',
   'badge.ok': 'OK',
   'badge.timeout': 'Tidsgräns nådd',
@@ -63,6 +64,8 @@ const resources = {
   'status.forbidden': 'Förbjuden',
   'status.gateway-timeout': 'Gateway-timeout',
   'status.intentionally-removed': 'Avsiktligt borttagen',
+  'status.internal-host':
+    'Den här länken pekar på en lokal eller intern adress - ser ut som en utvecklings- eller staging-länk som aldrig byttes ut mot den riktiga',
   'status.internal-server-error': 'Internt serverfel',
   'status.malformed-url':
     'Det här är inte en giltig URL - kontrollera om det är en felstavning (t.ex. ett extra mellanslag eller saknat tecken)',

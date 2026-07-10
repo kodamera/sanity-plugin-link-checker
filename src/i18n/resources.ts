@@ -3,6 +3,7 @@ const resources = {
   'badge.blocked': 'Blocked',
   'badge.broken': 'Broken',
   'badge.dangling-reference': 'Dangling reference',
+  'badge.internal-host': 'Local/internal address',
   'badge.malformed-url': 'Invalid URL',
   'badge.ok': 'OK',
   'badge.timeout': 'Timeout',
@@ -63,6 +64,8 @@ const resources = {
   'status.forbidden': 'Forbidden',
   'status.gateway-timeout': 'Gateway timeout',
   'status.intentionally-removed': 'Intentionally removed',
+  'status.internal-host':
+    'This points at a local or internal-network address - looks like a dev/staging link that was never swapped for the real one',
   'status.internal-server-error': 'Internal server error',
   'status.malformed-url':
     "This isn't a valid URL - check for a typo (e.g. a stray space or missing character)",
