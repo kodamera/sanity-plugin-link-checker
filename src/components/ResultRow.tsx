@@ -239,7 +239,7 @@ function StackedStatusBadges({results}: {results: UrlCheckResult[]}): JSX.Elemen
     <span className="lc-badge-stack">
       <LinkStatusBadge result={primary} />
       {extraCount > 0 && (
-        <span className="lc-badge-stack-reveal">
+        <>
           <span className="lc-badge-stack-collapsed">
             {/* Neutral tone deliberately - this is a count, not a status verdict. The
                 concrete badge to its left already carries the real severity color; coloring
@@ -264,7 +264,7 @@ function StackedStatusBadges({results}: {results: UrlCheckResult[]}): JSX.Elemen
               </Tooltip>
             )}
           </span>
-        </span>
+        </>
       )}
     </span>
   )

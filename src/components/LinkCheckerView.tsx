@@ -275,26 +275,26 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
         /* Mixed-status badge cluster (AggregateStatusBadge/StackedStatusBadges): one
            concrete badge plus either a "+N" chip (collapsed) or the remaining real badges
            (expanded) - never both, never overlapped, so nothing ever clips a neighbor's
-           text. Both groups share the same grid cell and crossfade rather than hard-swap
-           via display, so revealing on hover doesn't jump. Devices with no hover (touch)
-           get the expanded group directly - there's no hover gesture to reveal it with. */
+           text. Collapsed and expanded are sequential siblings (not stacked), each sized to
+           only its own content via max-width - a stacked/grid-area approach was tried first
+           but reserves width for the WIDER of the two even at rest, leaving inconsistent
+           dead space before Details on rows with a narrow "+N" chip. Devices with no hover
+           (touch) get the expanded group directly - there's no hover gesture to reveal it
+           with. */
         .lc-badge-stack { display: inline-flex; align-items: center; gap: 4px; }
-        .lc-badge-stack-reveal { display: inline-grid; }
-        /* Both groups share a grid cell sized to the WIDER of the two (needed so the
-           crossfade doesn't reflow) - justify-content: flex-end keeps the narrower one
-           (usually collapsed, just the "+N" chip) flush against Details instead of sitting
-           flush-left with a visible gap in the reserved space before it. */
         .lc-badge-stack-collapsed, .lc-badge-stack-expanded {
-          grid-area: 1 / 1;
           display: inline-flex;
           align-items: center;
-          justify-content: flex-end;
           gap: 4px;
-          transition: opacity 150ms ease, transform 150ms ease;
+          overflow: hidden;
+          transition: opacity 150ms ease, transform 150ms ease, max-width 180ms ease;
         }
-        /* Hidden state slides in from the left as it fades in (and back out the same way
-           leaving), rather than a plain crossfade in place. */
-        .lc-badge-stack-expanded { opacity: 0; transform: translateX(-6px); pointer-events: none; }
+        .lc-badge-stack-collapsed { max-width: 40px; }
+        /* Hidden state slides in from the right as it fades/grows in (and back out the same
+           way leaving), rather than a plain crossfade in place. 160px comfortably fits two
+           badges plus an overflow chip - transitioning max-width rather than width since
+           width can't animate to/from its intrinsic content size. */
+        .lc-badge-stack-expanded { max-width: 0; opacity: 0; transform: translateX(6px); }
 
         /* Every badge in this tool shows a status code or count at some point (200, 404,
            +1, ...) - tabular figures keep digit widths consistent instead of a narrow "1"
@@ -320,19 +320,19 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
              badge itself must reveal the rest too, not only the "+N" chip's own bounds. */
           .lc-badge-stack:hover .lc-badge-stack-collapsed,
           .lc-badge-stack:focus-within .lc-badge-stack-collapsed {
+            max-width: 0;
             opacity: 0;
-            pointer-events: none;
           }
           .lc-badge-stack:hover .lc-badge-stack-expanded,
           .lc-badge-stack:focus-within .lc-badge-stack-expanded {
+            max-width: 160px;
             opacity: 1;
             transform: translateX(0);
-            pointer-events: auto;
           }
         }
         @media not (hover: hover) {
           .lc-badge-stack-collapsed { display: none; }
-          .lc-badge-stack-expanded { opacity: 1; transform: translateX(0); pointer-events: auto; }
+          .lc-badge-stack-expanded { max-width: 160px; opacity: 1; transform: translateX(0); }
         }
         @media (prefers-reduced-motion: reduce) {
           .lc-badge-stack-collapsed, .lc-badge-stack-expanded { transition: none; }
