@@ -240,29 +240,31 @@ function StackedStatusBadges({results}: {results: UrlCheckResult[]}): JSX.Elemen
       <LinkStatusBadge result={primary} />
       {extraCount > 0 && (
         <span className="lc-badge-stack-reveal">
-          <span className="lc-badge-stack-collapsed">
-            {/* Neutral tone deliberately - this is a count, not a status verdict. The
-                concrete badge to its left already carries the real severity color; coloring
-                the count too would read as "the +N itself is critical." */}
-            <Badge tone="default" fontSize={1} paddingX={1} paddingY={2}>
-              +{extraCount}
-            </Badge>
-          </span>
-          <span className="lc-badge-stack-expanded">
-            {revealed.map((result) => (
-              <LinkStatusBadge result={result} key={resultIdentity(result)} />
-            ))}
-            {overflow > 0 && (
-              <Tooltip
-                content={<Text size={1}>{t('status.mixed-statuses')}</Text>}
-                placement="top"
-                portal
-              >
-                <Badge tone="default" fontSize={1} padding={2}>
-                  +{overflow}
-                </Badge>
-              </Tooltip>
-            )}
+          <span className="lc-badge-stack-inner">
+            <span className="lc-badge-stack-collapsed">
+              {/* Neutral tone deliberately - this is a count, not a status verdict. The
+                  concrete badge to its left already carries the real severity color;
+                  coloring the count too would read as "the +N itself is critical." */}
+              <Badge tone="default" fontSize={1} paddingX={1} paddingY={2}>
+                +{extraCount}
+              </Badge>
+            </span>
+            <span className="lc-badge-stack-expanded">
+              {revealed.map((result) => (
+                <LinkStatusBadge result={result} key={resultIdentity(result)} />
+              ))}
+              {overflow > 0 && (
+                <Tooltip
+                  content={<Text size={1}>{t('status.mixed-statuses')}</Text>}
+                  placement="top"
+                  portal
+                >
+                  <Badge tone="default" fontSize={1} padding={2}>
+                    +{overflow}
+                  </Badge>
+                </Tooltip>
+              )}
+            </span>
           </span>
         </span>
       )}

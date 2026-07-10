@@ -275,48 +275,42 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
         /* Mixed-status badge cluster (AggregateStatusBadge/StackedStatusBadges): one
            concrete badge plus either a "+N" chip (collapsed) or the remaining real badges
            (expanded) - never both, never overlapped, so nothing ever clips a neighbor's
-           text. Collapsed and expanded are sequential siblings (not stacked), each sized to
-           only its own content via max-width - a stacked/grid-area approach was tried first
-           but reserves width for the WIDER of the two even at rest, leaving inconsistent
-           dead space before Details on rows with a narrow "+N" chip.
+           text.
 
-           max-width IS animated (unlike a first attempt that left it instant, transform/
-           opacity-only): these are a couple of tiny badge elements, not a large/complex
-           layout - the reflow cost is trivial, and leaving it instant meant this cluster's
-           own footprint changed size in a single frame. The row's title column (flex: 1,
-           minWidth: 0) absorbs that width change to keep the trailing group's flexShrink: 0
-           content unshrunk, so an instant snap here read as the whole trailing group -
-           primary badge included - jumping left rather than animating. The actual bug in
-           that first attempt was the collapsed chip's own min-width fighting its shrinking
-           container mid-transition (see the min-width rule below, deliberately NOT applied
-           to the collapsed chip) - not max-width transitions themselves. Devices with no
-           hover (touch) get the expanded group directly - there's no hover gesture to
-           reveal it with. */
-        /* CSS gap inserts space between EVERY adjacent flex item regardless of its size,
-           including a max-width: 0 one - collapsed/expanded as direct children of
-           .lc-badge-stack (both always rendered, only one ever visible) would double the
-           gap in the expanded state: 4px primary-to-collapsed (invisible, but still
-           counted) plus another 4px collapsed-to-expanded. The .lc-badge-stack-reveal
-           wrapper counts as exactly one item against the outer gap regardless of which of
-           its two children is currently visible - gap: 0 internally, since collapsed and
-           expanded are mutually exclusive and never need space between each other. */
+           Exactly ONE dimension animates the reflow: .lc-badge-stack-reveal's own
+           max-width, between two fixed pixel endpoints (not two independently-animating
+           max-widths on collapsed/expanded separately, tried previously). Two competing
+           ease-out curves - one shrinking, one growing, run simultaneously - don't sum to
+           a smooth total width; ease-out moves fast-then-slow on BOTH ends at once, so the
+           combined width overshoots partway through and settles unevenly, which read as a
+           bounce even though neither curve alone had any oscillation in it. A single
+           controlled width transition can't produce that same-signed problem.
+
+           Collapsed and expanded sit INSIDE that single-width wrapper, grid-area-stacked
+           (sized to the wider of the two, but now irrelevant since the wrapper clips to its
+           own explicit max-width regardless) and crossfaded via opacity/transform only -
+           genuinely compositor-only, no width/layout property on either of them at all, so
+           there's nothing left to fight a min-width floor or interact with the reflow.
+           Devices with no hover (touch) get the expanded group directly - there's no hover
+           gesture to reveal it with. */
         .lc-badge-stack { display: inline-flex; align-items: center; gap: 4px; }
-        .lc-badge-stack-reveal { display: inline-flex; align-items: center; gap: 0; }
+        .lc-badge-stack-reveal {
+          display: inline-flex;
+          overflow: hidden;
+          max-width: 40px;
+          transition: max-width 200ms ease-out;
+        }
+        .lc-badge-stack-inner { display: inline-grid; }
         .lc-badge-stack-collapsed, .lc-badge-stack-expanded {
+          grid-area: 1 / 1;
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          overflow: hidden;
-          transition:
-            opacity 150ms ease-out,
-            transform 150ms ease-out,
-            max-width 200ms ease-out;
+          transition: opacity 150ms ease-out, transform 150ms ease-out;
         }
-        .lc-badge-stack-collapsed { max-width: 40px; }
         /* Hidden state slides in from the right as it fades in (and back out the same way
-           leaving), rather than a plain crossfade in place. 160px comfortably fits two
-           badges plus an overflow chip. */
-        .lc-badge-stack-expanded { max-width: 0; opacity: 0; transform: translateX(6px); }
+           leaving), rather than a plain crossfade in place. */
+        .lc-badge-stack-expanded { opacity: 0; transform: translateX(6px); pointer-events: none; }
 
         /* Every badge in this tool shows a status code or count at some point (200, 404,
            +1, ...) - tabular figures keep digit widths consistent instead of a narrow "1"
@@ -329,13 +323,9 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
 
         /* The "+N" chip is 1-2 digits, always - a plain Badge (sized for arbitrary text)
            reads as a squat, oddly-shaped pill next to a real code/label. Fixed min-width and
-           centered text make it read as a compact counter instead - applied only to the
-           expanded state's overflow chip, which sits at a fixed size and never animates.
-           The collapsed chip deliberately does NOT get min-width: its own max-width
-           animates down to 0 on reveal, and a badge that refuses to shrink past a floor
-           while its container keeps shrinking around it just gets abruptly clipped instead
-           of shrinking smoothly - that fight was the actual cause of the very first
-           attempt's jump/bounce motion. */
+           centered text make it read as a compact counter instead. Safe on both chips now -
+           neither animates its own width anymore, so there's no floor left to fight. */
+        .lc-badge-stack-collapsed [data-ui="Badge"],
         .lc-badge-stack-expanded [data-ui="Badge"]:last-child:not(:first-child) {
           min-width: 1.75em;
           text-align: center;
@@ -343,26 +333,33 @@ export function LinkCheckerView(props: {config?: LinkCheckerPluginConfig}): JSX.
 
         @media (hover: hover) {
           /* Trigger is the whole cluster (.lc-badge-stack, includes the always-visible
-             primary badge), not just the collapsed/expanded box - hovering the primary
-             badge itself must reveal the rest too, not only the "+N" chip's own bounds. */
+             primary badge), not just the reveal box - hovering the primary badge itself
+             must reveal the rest too, not only the "+N" chip's own bounds. */
+          .lc-badge-stack:hover .lc-badge-stack-reveal,
+          .lc-badge-stack:focus-within .lc-badge-stack-reveal {
+            max-width: 160px;
+          }
           .lc-badge-stack:hover .lc-badge-stack-collapsed,
           .lc-badge-stack:focus-within .lc-badge-stack-collapsed {
-            max-width: 0;
             opacity: 0;
+            pointer-events: none;
           }
           .lc-badge-stack:hover .lc-badge-stack-expanded,
           .lc-badge-stack:focus-within .lc-badge-stack-expanded {
-            max-width: 160px;
             opacity: 1;
             transform: translateX(0);
+            pointer-events: auto;
           }
         }
         @media not (hover: hover) {
+          .lc-badge-stack-reveal { max-width: 160px; }
           .lc-badge-stack-collapsed { display: none; }
-          .lc-badge-stack-expanded { max-width: 160px; opacity: 1; transform: translateX(0); }
+          .lc-badge-stack-expanded { opacity: 1; transform: translateX(0); pointer-events: auto; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .lc-badge-stack-collapsed, .lc-badge-stack-expanded { transition: none; }
+          .lc-badge-stack-reveal, .lc-badge-stack-collapsed, .lc-badge-stack-expanded {
+            transition: none;
+          }
         }
       `}</style>
       <Stack gap={[4, 4, 5]} style={{width: '100%', minWidth: 0}}>
