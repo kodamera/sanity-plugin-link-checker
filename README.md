@@ -43,6 +43,7 @@ come back `unverifiable` rather than a real answer.
 ## Features
 
 - **Finds broken external links** — every URL in your content, checked over HTTP with real status codes. Needs the included Document Function (or CLI) — the Studio's "Run scan" button alone is CORS-limited and can't give you real answers.
+- **Catches more than dead links** — syntactically malformed URLs and links to localhost/private-network hosts are flagged by default, no network request needed; domain-shaped text missing its `http(s)://` and URL-shaped text with no link attached are opt-in checks (see [Configuration](#configuration)).
 - **Finds dangling references** — reference fields pointing at documents that no longer exist, checked against both published and draft versions.
 - **Scans everything** — published documents, drafts, and release versions across the entire dataset.
 - **Jump straight to the problem** — click any finding to open the document with the offending field focused and scrolled into view.
