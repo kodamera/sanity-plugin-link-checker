@@ -5,6 +5,14 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.3](https://github.com/kodamera/sanity-plugin-link-checker/compare/v0.3.2...v0.3.3) (2026-08-31)
+
+### Bug Fixes
+
+- **deps:** add direct devDependency for conventional-changelog-conventionalcommits ([bc4faf1](https://github.com/kodamera/sanity-plugin-link-checker/commit/bc4faf1fb5468c8dc0d462d2c3c6e142809e1990))
+- **deps:** bump @sanity/ui to v4, dedupe against Studio v6 ([6eb9b4f](https://github.com/kodamera/sanity-plugin-link-checker/commit/6eb9b4f75db4194f328421eb2cb20493034bb8a1))
+- **deps:** pin conventional-changelog-conventionalcommits to resolve release breakage ([ac01fff](https://github.com/kodamera/sanity-plugin-link-checker/commit/ac01fff0662c5d9191333cd0f78bb22d8f289a4a))
+
 ## [0.3.2](https://github.com/kodamera/sanity-plugin-link-checker/compare/v0.3.1...v0.3.2) (2026-07-10)
 
 ## [0.3.1](https://github.com/kodamera/sanity-plugin-link-checker/compare/v0.3.0...v0.3.1) (2026-07-10)
