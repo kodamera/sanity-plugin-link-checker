@@ -1,4 +1,5 @@
-import {Badge, Text, Tooltip} from '@sanity/ui'
+import {Badge, Text} from '@sanity/ui'
+import {Tooltip} from '@sanity/ui/tooltip'
 import type {ComponentProps, JSX} from 'react'
 import {DocumentStatus, DocumentStatusIndicator, useTranslation} from 'sanity'
 

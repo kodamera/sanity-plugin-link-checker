@@ -1,15 +1,6 @@
-import {
-  Badge,
-  Box,
-  Button,
-  Flex,
-  Menu,
-  MenuButton,
-  MenuItem,
-  Stack,
-  Text,
-  Tooltip,
-} from '@sanity/ui'
+import {Badge, Box, Button, Flex, Stack, Text} from '@sanity/ui'
+import {Menu, MenuButton, MenuItem} from '@sanity/ui/menu'
+import {Tooltip} from '@sanity/ui/tooltip'
 import {
   type CSSProperties,
   type JSX,
