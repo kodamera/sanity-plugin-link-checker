@@ -41,6 +41,42 @@ export async function readReport(client: SanityClient): Promise<ScanResult | nul
 }
 
 /**
+ * Subscribes to the report document: calls `onReport` once immediately with
+ * whatever is there now, then again every time a fresher report is written -
+ * by this Studio's own scan button, another environment's, the CLI, or a
+ * deployed Document Function. Returns an unsubscribe function.
+ *
+ * This is the same fetch-then-listen-then-refetch shape the Studio tool's
+ * own `useScanReport` hook uses internally, factored out here so any other
+ * code reading this report (a custom dashboard, another Studio's own
+ * inbox/notification plugin, ...) gets a live view without re-deriving the
+ * listen query or this document's shape itself.
+ */
+export function observeReport(
+  client: SanityClient,
+  onReport: (report: ScanResult | null) => void,
+): () => void {
+  let cancelled = false
+
+  const emit = () => {
+    readReport(client).then((report) => {
+      if (!cancelled) onReport(report)
+    })
+  }
+
+  emit()
+
+  const subscription = client
+    .listen(`*[_id == $id]`, {id: REPORT_DOC_ID}, {visibility: 'query'})
+    .subscribe(emit)
+
+  return () => {
+    cancelled = true
+    subscription.unsubscribe()
+  }
+}
+
+/**
  * Toggles a finding's key (see getFindingKey) in and out of the acknowledged set.
  *
  * The add/remove is an atomic array patch rather than rewriting the whole array, so two

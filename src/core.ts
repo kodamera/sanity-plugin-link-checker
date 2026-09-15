@@ -4,6 +4,7 @@
  * default export of this package) uses the same code internally.
  */
 export {
+  observeReport,
   readReport,
   REPORT_DOC_ID,
   REPORT_DOC_TYPE,
@@ -27,4 +28,4 @@ export type {
   ScanResult,
   UrlCheckResult,
 } from './lib/types'
-export {getFindingKey} from './lib/types'
+export {getFindingKey, isAcknowledged, isProblemFinding} from './lib/types'

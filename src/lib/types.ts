@@ -133,6 +133,29 @@ export function getFindingKey(finding: ScanFinding): string {
   return `${finding.kind}:${finding.fromId}:${finding.fieldPath}:${identity}`
 }
 
+/**
+ * Whether a finding counts as a real problem to show or act on - the same
+ * definition this plugin's own CLI gate (`summarizeResult`) uses, exported so
+ * other code reading `findings` (a custom dashboard, a different Studio's
+ * inbox/notification plugin, ...) doesn't have to re-derive it and risk
+ * drifting from what "broken" means here.
+ *
+ * A reference finding is always a problem - only non-existent refs are ever
+ * reported in the first place. A link finding is a problem once its status
+ * is `broken`; `unverifiable` (a CORS-limited in-Studio check that couldn't
+ * reach a real verdict) only counts if `includeUnverifiable` is set - most
+ * consumers should leave it off until the Document Function is deployed, or
+ * `unverifiable` results are common enough to be noise rather than signal.
+ */
+export function isProblemFinding(
+  finding: ScanFinding,
+  options?: {includeUnverifiable?: boolean},
+): boolean {
+  if (finding.kind === 'reference') return true
+  if (finding.result.status === 'broken') return true
+  return Boolean(options?.includeUnverifiable) && finding.result.status === 'unverifiable'
+}
+
 export interface ScanResult {
   ranAt: string
   findings: ScanFinding[]
@@ -151,4 +174,17 @@ export interface ScanResult {
    * within Sanity document / localStorage size limits. Problem findings are never
    * dropped. 0 or absent = nothing was dropped. */
   okFindingsTruncated?: number
+}
+
+/**
+ * Whether a finding has been marked reviewed/fixed on this report - a small
+ * wrapper over `acknowledgedKeys`/`getFindingKey` so a consumer doesn't have
+ * to know acknowledgement is stored as a flat array of finding keys on the
+ * report itself, or re-derive the lookup.
+ */
+export function isAcknowledged(
+  report: Pick<ScanResult, 'acknowledgedKeys'>,
+  finding: ScanFinding,
+): boolean {
+  return (report.acknowledgedKeys ?? []).includes(getFindingKey(finding))
 }
