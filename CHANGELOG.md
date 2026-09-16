@@ -5,6 +5,12 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.0](https://github.com/kodamera/sanity-plugin-link-checker/compare/v0.3.3...v0.4.0) (2026-09-16)
+
+### Features
+
+- expose a stable third-party integration surface from core ([b68ac65](https://github.com/kodamera/sanity-plugin-link-checker/commit/b68ac6556601bf54c827a6fcb1783efc7392a18c))
+
 ## [0.3.3](https://github.com/kodamera/sanity-plugin-link-checker/compare/v0.3.2...v0.3.3) (2026-08-31)
 
 ### Bug Fixes
