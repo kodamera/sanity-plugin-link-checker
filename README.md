@@ -255,11 +255,32 @@ something, unlike the CLI.
 ### Using the scanning logic in your own code
 
 The Function, the CLI, and the Studio plugin all share the same scanning code, exported
-React-free from `sanity-plugin-link-checker/core` for use in your own scripts or
-Functions: `runScan`, `writeReport`, `readReport`, `writeTrigger`, and `summarizeResult`
-(the same broken/unverifiable counting logic the CLI's `--fail-on-findings` gate uses).
-See [`src/core.ts`](src/core.ts) for the full list, including the acknowledgement and
-trigger-config helpers.
+React-free from `sanity-plugin-link-checker/core` for use in your own scripts, Functions,
+or another Studio plugin that wants to surface these findings its own way (an inbox
+pane, a dashboard, a notification). This is the intended integration surface for exactly
+that — the Studio UI can iterate faster; treat these as the stable contract:
+
+- `runScan`, `writeReport`, `readReport` — run a scan and read/write its report.
+- `observeReport(client, onReport)` — subscribes to the report document, calling back
+  immediately with the current value and again on every change (a re-scan from this
+  Studio, another environment, the CLI, or a deployed Function). Returns an unsubscribe
+  function. The same fetch-then-listen-then-refetch shape the Studio tool's own
+  `useScanReport` hook uses internally — use this instead of re-deriving that query
+  against `REPORT_DOC_ID` yourself.
+- `isProblemFinding(finding, {includeUnverifiable?})` — the one true "does this finding
+  count as a real issue" check (a reference always does; a link does once `broken`;
+  `unverifiable` only if asked for). The same definition `summarizeResult`'s own
+  broken/unverifiable counting is built on — use this rather than re-deriving it, so a
+  future change to what "broken" means here doesn't silently drift between consumers.
+- `isAcknowledged(report, finding)` / `toggleAcknowledged` — read and change a finding's
+  reviewed/fixed mark without needing to know it's stored as `acknowledgedKeys`, a flat
+  array of `getFindingKey` identities, on the report itself.
+- `getFindingKey(finding)` — the finding's own stable identity, unaffected by array
+  position or a re-scan.
+- `summarizeResult` — the same broken/unverifiable counting logic the CLI's
+  `--fail-on-findings` gate uses.
+
+See [`src/core.ts`](src/core.ts) for the full list, including the trigger-config helpers.
 
 ### Why browser checks are limited (CORS)
 

@@ -1,4 +1,4 @@
-import type {ScanFinding, ScanResult} from './types'
+import {isProblemFinding, type ScanFinding, type ScanResult} from './types'
 
 function groupKeyOf(finding: ScanFinding): string {
   const identity = finding.kind === 'reference' ? finding.refId : finding.href
@@ -27,9 +27,11 @@ export function summarizeResult(result: ScanResult): {
   issueCount: number
 } {
   const refFindings = result.findings.filter((f) => f.kind === 'reference')
-  const brokenLinkFindings = result.findings.filter(
-    (f) => f.kind === 'link' && f.result.status === 'broken',
-  )
+  // `isProblemFinding` (no `includeUnverifiable`) reduces to exactly
+  // `status === 'broken'` for a link finding - routed through the shared
+  // definition rather than re-checking `.status` inline, so this and any
+  // other consumer of `findings` never drift on what "broken" means.
+  const brokenLinkFindings = result.findings.filter((f) => f.kind === 'link' && isProblemFinding(f))
   const unverifiableLinkFindings = result.findings.filter(
     (f) => f.kind === 'link' && f.result.status === 'unverifiable',
   )

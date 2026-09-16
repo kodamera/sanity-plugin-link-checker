@@ -1,7 +1,7 @@
 import type {SanityClient} from '@sanity/client'
 import {describe, expect, it, vi} from 'vitest'
 
-import {toggleAcknowledged, writeReport} from './reportDocument'
+import {observeReport, toggleAcknowledged, writeReport} from './reportDocument'
 import {getFindingKey, type ScanFinding, type ScanResult} from './types'
 
 const baseResult: ScanResult = {
@@ -152,5 +152,90 @@ describe('toggleAcknowledged', () => {
     expect(calls.setIfMissing).toEqual([{acknowledgedKeys: []}])
     expect(calls.insert).toEqual(['after', 'acknowledgedKeys[-1]', ['the-key']])
     expect(calls.unset).toBeUndefined()
+  })
+})
+
+/** A fake `client.listen(...)` whose `subscribe` captures the callback so a test can fire it manually. */
+function fakeListenClient(fetchImpl: () => Promise<ScanResult | null>) {
+  let onMutation: (() => void) | undefined
+  const unsubscribe = vi.fn()
+  const client = {
+    fetch: vi.fn(fetchImpl),
+    listen: vi.fn().mockReturnValue({
+      subscribe: (cb: () => void) => {
+        onMutation = cb
+        return {unsubscribe}
+      },
+    }),
+  } as unknown as SanityClient
+
+  return {client, unsubscribe, fireMutation: () => onMutation?.()}
+}
+
+describe('observeReport', () => {
+  it('emits the current report immediately, with no mutation needed', async () => {
+    const {client} = fakeListenClient(async () => baseResult)
+    const onReport = vi.fn()
+
+    observeReport(client, onReport)
+    await vi.waitFor(() => expect(onReport).toHaveBeenCalledWith(baseResult))
+  })
+
+  it('emits null when no report exists yet, rather than never calling back', async () => {
+    const {client} = fakeListenClient(async () => null)
+    const onReport = vi.fn()
+
+    observeReport(client, onReport)
+    await vi.waitFor(() => expect(onReport).toHaveBeenCalledWith(null))
+  })
+
+  it('refetches and emits again when a matching document changes', async () => {
+    let call = 0
+    const {client, fireMutation} = fakeListenClient(async () => ({
+      ...baseResult,
+      documentsScanned: ++call,
+    }))
+    const onReport = vi.fn()
+
+    observeReport(client, onReport)
+    await vi.waitFor(() =>
+      expect(onReport).toHaveBeenCalledWith(expect.objectContaining({documentsScanned: 1})),
+    )
+
+    fireMutation()
+    await vi.waitFor(() =>
+      expect(onReport).toHaveBeenCalledWith(expect.objectContaining({documentsScanned: 2})),
+    )
+  })
+
+  it('unsubscribes from listen, and stops calling back, once stopped', async () => {
+    let call = 0
+    const {client, unsubscribe, fireMutation} = fakeListenClient(async () => ({
+      ...baseResult,
+      documentsScanned: ++call,
+    }))
+    const onReport = vi.fn()
+
+    const stop = observeReport(client, onReport)
+    await vi.waitFor(() => expect(onReport).toHaveBeenCalledTimes(1))
+
+    stop()
+    expect(unsubscribe).toHaveBeenCalled()
+
+    fireMutation()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(onReport).toHaveBeenCalledTimes(1)
+  })
+
+  it('passes listen the report document id and query-visibility', () => {
+    const {client} = fakeListenClient(async () => baseResult)
+
+    observeReport(client, vi.fn())
+
+    expect(client.listen).toHaveBeenCalledWith(
+      '*[_id == $id]',
+      {id: 'link-checker-report'},
+      {visibility: 'query'},
+    )
   })
 })
