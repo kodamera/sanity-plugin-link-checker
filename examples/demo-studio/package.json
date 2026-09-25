@@ -14,7 +14,7 @@
     "@sanity/functions": "^1.7.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "sanity": "~6.10.0",
+    "sanity": "~6.16.0",
     "sanity-plugin-link-checker": "file:../..",
     "styled-components": "^6.5.3"
   }
