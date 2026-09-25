@@ -103,8 +103,8 @@ jobs:
     # Releases on every push to main, and on a workflow_dispatch that opts in.
     # semantic-release decides whether there is anything to release: a push
     # carrying only `chore:`/`docs:` commits is a no-op, so this is safe to run
-    # unconditionally. It only pushes a tag (no commit back to main), and tag
-    # pushes don't match `push: branches: [main]`, so it can't re-trigger itself.
+    # unconditionally. The release commit it pushes back carries `[skip ci]`,
+    # which is what keeps this from re-triggering itself.
     if: always() && (github.event_name == 'push' || github.event.inputs.release == 'true') && needs.build.result != 'failure' && needs.test.result != 'failure' && needs.test.result != 'cancelled'
     runs-on: ubuntu-latest
     name: Semantic release
