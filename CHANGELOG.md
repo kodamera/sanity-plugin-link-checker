@@ -5,6 +5,12 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.1](https://github.com/kodamera/sanity-plugin-link-checker/compare/v0.4.0...v0.4.1) (2026-09-25)
+
+### Bug Fixes
+
+- **deps:** require sanity >=6.14.1 as peer ([c879bd0](https://github.com/kodamera/sanity-plugin-link-checker/commit/c879bd0e38d80c71dedcf8508cc2451dcdd0d3cf))
+
 ## [0.4.0](https://github.com/kodamera/sanity-plugin-link-checker/compare/v0.3.3...v0.4.0) (2026-09-16)
 
 ### Features
