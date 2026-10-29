@@ -264,9 +264,15 @@ that — the Studio UI can iterate faster; treat these as the stable contract:
 - `observeReport(client, onReport)` — subscribes to the report document, calling back
   immediately with the current value and again on every change (a re-scan from this
   Studio, another environment, the CLI, or a deployed Function). Returns an unsubscribe
-  function. The same fetch-then-listen-then-refetch shape the Studio tool's own
-  `useScanReport` hook uses internally — use this instead of re-deriving that query
-  against `REPORT_DOC_ID` yourself.
+  function. Use this instead of re-deriving that query against `REPORT_DOC_ID` yourself.
+- `observeLiveReport(client, onReport)` — the same, minus findings fixed since the scan:
+  a removed link, a deleted document, a restored reference target. Re-emits when a
+  finding's document changes, so a fix shows up without a rescan. A finding stays while
+  any version of its document (published, draft, release) still contains it, which is
+  what a rescan would decide too. It only removes findings; new problems still need a
+  scan. If the live check fails, the report is emitted unpruned. The Studio tool uses
+  this; prefer it over `observeReport` for anything shown to editors.
+  (`pruneResolvedFindings` is the pure rule underneath, for code with its own data.)
 - `isProblemFinding(finding, {includeUnverifiable?})` — the one true "does this finding
   count as a real issue" check (a reference always does; a link does once `broken`;
   `unverifiable` only if asked for). The same definition `summarizeResult`'s own
