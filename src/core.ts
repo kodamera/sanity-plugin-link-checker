@@ -3,6 +3,7 @@
  * Document/Scheduled Function, a custom CI script, etc. The Studio plugin itself (the
  * default export of this package) uses the same code internally.
  */
+export {type LiveSnapshot, observeLiveReport, pruneResolvedFindings} from './lib/liveReport'
 export {
   observeReport,
   readReport,

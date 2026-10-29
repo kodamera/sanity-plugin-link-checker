@@ -2,7 +2,8 @@ import type {SanityClient} from '@sanity/client'
 import {useCallback, useEffect, useMemo, useState} from 'react'
 
 import {loadCachedResult, saveCachedResult} from '../../lib/cache'
-import {readReport, REPORT_DOC_ID, toggleAcknowledged} from '../../lib/reportDocument'
+import {observeLiveReport} from '../../lib/liveReport'
+import {toggleAcknowledged} from '../../lib/reportDocument'
 import {type PreviewDocumentValue, resolvePreviewDocuments} from '../../lib/resolvePreviewDocuments'
 import type {ScanResult} from '../../lib/types'
 
@@ -56,27 +57,28 @@ export function useScanReport(
   )
 
   // The dataset's report document is the source of truth across environments (CI, other
-  // Studios, teammates, a deployed Document Function) - fetch it on mount, then subscribe
-  // live so a report written elsewhere (e.g. a Function finishing a triggered rescan a few
-  // seconds after this button is clicked) shows up here automatically, no reload needed.
+  // Studios, teammates, a deployed Document Function) - observed live so a report written
+  // elsewhere (e.g. a Function finishing a triggered rescan a few seconds after this button
+  // is clicked) shows up here automatically, no reload needed. Live in a second sense too:
+  // a finding an editor has since fixed drops out without a rescan (see observeLiveReport).
+  //
+  // Only a new scan (a changed `ranAt`) counts as fresh: an acknowledgement toggle or a
+  // re-emit after a document edit is the same scan, so it neither brings back a dismissed
+  // banner nor ends the wait for a Function's result.
   useEffect(() => {
-    readReport(client).then((latest) => {
-      if (latest) persistResult(latest)
+    let seenRanAt: string | undefined
+    return observeLiveReport(client, (latest) => {
+      if (!latest) return
+      const previousRanAt = seenRanAt
+      seenRanAt = latest.ranAt
+      if (previousRanAt === latest.ranAt) {
+        setResult(latest)
+        if (projectId && dataset) saveCachedResult(projectId, dataset, latest)
+        return
+      }
+      persistResult(latest)
+      if (previousRanAt !== undefined) onFreshReport?.()
     })
-
-    const subscription = client
-      .listen(`*[_id == $id]`, {id: REPORT_DOC_ID}, {visibility: 'query'})
-      .subscribe(() => {
-        readReport(client).then((latest) => {
-          if (!latest) return
-          persistResult(latest)
-          onFreshReport?.()
-        })
-      })
-
-    return () => {
-      subscription.unsubscribe()
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client])
 
