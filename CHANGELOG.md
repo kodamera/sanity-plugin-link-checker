@@ -5,6 +5,12 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.2](https://github.com/kodamera/sanity-plugin-link-checker/compare/v0.4.1...v0.4.2) (2026-10-29)
+
+### Bug Fixes
+
+- drop findings fixed since the scan without a rescan ([854fc63](https://github.com/kodamera/sanity-plugin-link-checker/commit/854fc6302b430e880b738b7dc2bad0e3e68e99c7))
+
 ## [0.4.1](https://github.com/kodamera/sanity-plugin-link-checker/compare/v0.4.0...v0.4.1) (2026-09-25)
 
 ### Bug Fixes
